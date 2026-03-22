@@ -1,0 +1,16 @@
+name: Bloquear push direto na main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  block-direct-push:
+    runs-on: ubuntu-latest
+    if: github.event.pusher.name != 'web-flow' # Permite merge via PR
+    steps:
+      - name: Falhar se push direto na main
+        run: |
+          echo "Push direto na main não é permitido. Use Pull Request."
+          exit 1
