@@ -1,0 +1,39 @@
+---
+name: "Bug"
+description: "Relate um bug encontrado no sistema"
+title: "[BUG] <Descreva o problema>"
+labels: ["bug"]
+assignees: []
+body:
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição do bug
+      description: Explique o que está acontecendo de errado.
+      placeholder: Exemplo: Ao tentar logar, ocorre erro 500.
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      description: Liste os passos para reproduzir o bug.
+      placeholder: 1. Vá para a tela de login\n2. Digite usuário e senha\n3. Clique em Entrar
+    validations:
+      required: true
+  - type: textarea
+    id: esperado
+    attributes:
+      label: Comportamento esperado
+      description: O que deveria acontecer?
+      placeholder: Exemplo: Usuário deveria ser autenticado com sucesso.
+    validations:
+      required: true
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: Ambiente
+      description: Detalhe o ambiente (sistema operacional, navegador, etc).
+      placeholder: Exemplo: Windows 11, Chrome 120
+    validations:
+      required: false

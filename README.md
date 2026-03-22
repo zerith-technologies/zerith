@@ -1,4 +1,3 @@
-
 # zerith
 
 # ZERITH — Plataforma de Telemática Preditiva para Gestão de Frotas
@@ -75,4 +74,22 @@ Abra uma issue ou entre em contato com a equipe!
 
 ## Dúvidas?
 Abra uma issue ou entre em contato com a equipe!
- ba64d78 (chore: estrutura inicial e README do monorepo)
+
+## Modelos de Issues e Pull Requests
+
+- **Tarefa de Sprint:**
+  - Use o template "Tarefa de Sprint" para atividades planejadas de sprint.
+  - Checklist padrão: Código, Testes, Revisão, Documentação.
+- **Bug:**
+  - Use o template "Bug" para relatar problemas encontrados.
+  - Inclua passos para reproduzir, ambiente e comportamento esperado.
+- **Sugestão/Melhoria:**
+  - Use o template "Sugestão/Melhoria" para propor novas funcionalidades ou melhorias.
+  - Explique o contexto, a proposta e o benefício esperado.
+- **Pull Request:**
+  - Sempre use o template de PR.
+  - Descreva contexto, mudanças, checklist e observações.
+
+Todos os templates estão disponíveis ao criar uma nova issue ou PR pelo GitHub.
+
+ba64d78 (chore: estrutura inicial e README do monorepo)

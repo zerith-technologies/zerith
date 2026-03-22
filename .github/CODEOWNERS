@@ -1,0 +1,10 @@
+# Arquivo CODEOWNERS para ZERITH
+# Defina responsáveis por áreas do código
+
+*       @italoantonio-dev
+backend/ @italoantonio-dev
+frontend/ @italoantonio-dev
+hardware/ @italoantonio-dev
+ml-service/ @italoantonio-dev
+infra/ @italoantonio-dev
+docs/ @italoantonio-dev
