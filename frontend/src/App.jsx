@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { useFleet }     from './hooks/useFleet'
 import WheelCanvas      from './components/WheelCanvas'
 import EventFeed        from './components/EventFeed'
@@ -99,7 +100,13 @@ export default function App() {
       >
         <span className="text-sm font-bold tracking-tight text-white">ZERITH</span>
         <span className="text-[10px] text-gray-500 uppercase tracking-widest">Fleet Intelligence</span>
-        <span className="ml-auto text-[10px] tabular-nums" style={{ color: WS_COLOR[wsStatus] ?? '#64748b' }}>
+        <Link
+          to="/gestao"
+          className="ml-auto mr-4 text-[10px] uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors"
+        >
+          Gestão →
+        </Link>
+        <span className="text-[10px] tabular-nums" style={{ color: WS_COLOR[wsStatus] ?? '#64748b' }}>
           {WS_LABEL[wsStatus] ?? wsStatus}
         </span>
       </header>

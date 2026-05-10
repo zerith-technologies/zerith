@@ -60,7 +60,7 @@ public class TelemetriaService {
                 JsonNode fieldNode = obd.path(entry.getKey());
                 if (fieldNode.isMissingNode() || fieldNode.isNull()) continue;
                 String[] meta = entry.getValue();
-                Telemetria saved = persist(ts, meta[0], meta[1], fieldNode.asDouble(), meta[2]);
+                Telemetria saved = persist(ts, meta[0], meta[1], fieldNode.asDouble(), meta[2], vehicleId);
                 publishWs(saved, vehicleId);
             }
 
@@ -79,12 +79,17 @@ public class TelemetriaService {
     }
 
     private Telemetria persist(Instant ts, String pid, String name, double value, String unit) {
+        return persist(ts, pid, name, value, unit, null);
+    }
+
+    private Telemetria persist(Instant ts, String pid, String name, double value, String unit, String vehicleId) {
         Telemetria t = new Telemetria();
         t.setTimestamp(ts);
         t.setPid(pid);
         t.setName(name);
         t.setValue(value);
         t.setUnit(unit);
+        t.setVehicleId(vehicleId);
         return repository.save(t);
     }
 
