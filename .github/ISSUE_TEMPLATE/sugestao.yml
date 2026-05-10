@@ -1,0 +1,31 @@
+---
+name: "Sugestão/Melhoria"
+description: "Sugira uma melhoria ou nova funcionalidade"
+title: "[SUGESTÃO] <Descreva a sugestão>"
+labels: ["enhancement"]
+assignees: []
+body:
+  - type: textarea
+    id: contexto
+    attributes:
+      label: Contexto
+      description: Explique o contexto da sugestão.
+      placeholder: Exemplo: Melhorar performance do dashboard.
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+      description: Descreva a solução ou melhoria sugerida.
+      placeholder: Exemplo: Implementar cache para dados do dashboard.
+    validations:
+      required: true
+  - type: textarea
+    id: beneficio
+    attributes:
+      label: Benefício
+      description: Qual o benefício esperado?
+      placeholder: Exemplo: Reduzir tempo de carregamento em 50%.
+    validations:
+      required: false

@@ -1,0 +1,37 @@
+---
+name: "Tarefa de Sprint"
+description: "Modelo para tarefas de sprint do ZERITH"
+title: "[Sprint] <Descreva a tarefa>"
+labels: ["sprint", "a fazer"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Preencha os campos abaixo para detalhar a tarefa da sprint.
+  - type: textarea
+    id: descricao
+    attributes:
+      label: Descrição
+      description: Descreva o objetivo e contexto da tarefa.
+      placeholder: Exemplo: Implementar endpoint de autenticação JWT.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist de entrega
+      description: Marque os itens conforme for concluindo.
+      options:
+        - label: Código implementado
+        - label: Testes realizados
+        - label: Revisão de código
+        - label: Documentação atualizada
+  - type: textarea
+    id: observacoes
+    attributes:
+      label: Observações
+      description: Alguma observação extra?
+      placeholder: Exemplo: Depende da issue #X.
+    validations:
+      required: false
