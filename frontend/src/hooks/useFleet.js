@@ -6,6 +6,7 @@ export const VEHICLES = [
   { id: 'saveiro', name: 'Saveiro', color: '#10b981' },
   { id: 'polo',    name: 'Polo',    color: '#f59e0b' },
   { id: 'strada',  name: 'Strada',  color: '#ef4444' },
+  { id: 'argo',    name: 'Argo',    color: '#a855f7' },
 ]
 
 const INITIAL_SENSORS = {
@@ -37,7 +38,8 @@ function classifyAlert(pid, value) {
     if (value > 5000) return 'warning'
   }
   if (pid === '0x24') {
-    if (value < 12.0 || value > 16.0) return 'warning'
+    if (value < 12.0 || value > 17.0) return 'danger'
+    if (value < 13.5 || value > 15.5) return 'warning'
   }
   return 'ok'
 }

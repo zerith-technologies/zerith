@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Menu, Search, SlidersHorizontal, Bell, ChevronDown,
@@ -7,53 +7,84 @@ import {
 } from 'lucide-react'
 
 import { useFleet } from './hooks/useFleet'
-import NavItem       from './components/NavItem'
-import VehicleModal  from './components/VehicleModal'
-import DashboardView from './views/DashboardView'
-import FrotaView     from './views/FrotaView'
+import NavItem        from './components/NavItem'
+import VehicleModal   from './components/VehicleModal'
+import DashboardView  from './views/DashboardView'
+import FrotaView      from './views/FrotaView'
 import FinanceiraView from './views/FinanceiraView'
 
-const FLEET_DRIVERS = [
-  { id: '1', name: 'Carlos Silva',   status: 'em_rota',    time: '14 min', placa: 'XYZ-9876', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Carlos&backgroundColor=e2e8f0',   carColor: '#3b82f6', phone: '(11) 98888-7777', email: 'carlos.s@zerith.com',   model: 'Tracker 2023' },
-  { id: '2', name: 'Ana Paula',      status: 'em_rota',    time: '5 min',  placa: 'ABC-1234', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ana&backgroundColor=e2e8f0',      carColor: '#ef4444', phone: '(11) 97777-6666', email: 'ana.p@zerith.com',      model: 'Nivus 2024'   },
-  { id: '3', name: 'João Marcos',    status: 'disponivel', time: '-',      placa: 'QWE-5555', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Joao&backgroundColor=e2e8f0',     carColor: '#10b981', phone: '(11) 96666-5555', email: 'joao.m@zerith.com',     model: 'Corolla 2022' },
-  { id: '4', name: 'Mariana Costa',  status: 'disponivel', time: '-',      placa: 'RTY-1122', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Mariana&backgroundColor=e2e8f0', carColor: '#f59e0b', phone: '(11) 95555-4444', email: 'mariana.c@zerith.com', model: 'Kicks 2023'   },
-  { id: '5', name: 'Ricardo Dias',   status: 'manutencao', time: '-',      placa: 'UIO-9988', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ricardo&backgroundColor=e2e8f0', carColor: '#64748b', phone: '(11) 94444-3333', email: 'ricardo.d@zerith.com', model: 'Compass 2022' },
-  { id: '6', name: 'Fernanda Lima',  status: 'disponivel', time: '-',      placa: 'BNM-5544', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Fernanda&backgroundColor=e2e8f0',carColor: '#a855f7', phone: '(11) 93333-2222', email: 'fernanda.l@zerith.com',model: 'Creta 2024'   },
-]
+// Motoristas da frota ZERITH — vinculados ao ID real do veículo
+const DRIVERS = {
+  mobi:    { name: 'Carlos Silva',  phone: '(34) 98811-2233', email: 'carlos.silva@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=CarlosSilvaZerith&backgroundColor=e2e8f0',  placa: 'HDJ-5823', model: 'Fiat Mobi 1.0 2022'        },
+  saveiro: { name: 'Ana Paula',     phone: '(34) 97722-3344', email: 'ana.paula@zerith.com.br',     avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=AnaPaulaZerith&backgroundColor=e2e8f0',     placa: 'QLP-3947', model: 'VW Saveiro G7 1.6'          },
+  polo:    { name: 'João Marcos',   phone: '(34) 96633-4455', email: 'joao.marcos@zerith.com.br',   avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=JoaoMarcosZerith&backgroundColor=e2e8f0',   placa: 'KRT-2156', model: 'VW Polo GTS 1.0 TSI 2023'  },
+  strada:  { name: 'Mariana Costa', phone: '(34) 95544-5566', email: 'mariana.costa@zerith.com.br', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=MarianaCosta&backgroundColor=e2e8f0',       placa: 'BFN-8432', model: 'Fiat Strada Endurance 2023' },
+  argo:    { name: 'Ricardo Dias',  phone: '(34) 94455-6677', email: 'ricardo.dias@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=RicardoDiasZerith&backgroundColor=e2e8f0',  placa: 'MXV-6019', model: 'Fiat Argo Drive 1.0 2023'  },
+}
+
+// ETA estável por veículo (não muda a cada render)
+const VEHICLE_ETA = { mobi: '14 min', saveiro: '8 min', polo: '22 min', strada: '5 min', argo: '17 min' }
 
 const WS_DOT = { connected: 'bg-green-500', disconnected: 'bg-gray-500', error: 'bg-red-500' }
 
 export default function App() {
-  const { fleet, vehicles, activeVehicleId, wsStatus } = useFleet()
+  const { fleet, vehicles, wsStatus } = useFleet()
 
-  const [currentView,    setCurrentView]    = useState('dashboard')
-  const [isSidebarOpen,  setIsSidebarOpen]  = useState(true)
-  const [isDarkMode,     setIsDarkMode]     = useState(false)
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
-  const [isNotifOpen,    setIsNotifOpen]    = useState(false)
-  const [isSearchFocused,setIsSearchFocused]= useState(false)
-  const [selectedVehicle,setSelectedVehicle]= useState(null)
+  const [currentView,     setCurrentView]     = useState('dashboard')
+  const [isSidebarOpen,   setIsSidebarOpen]   = useState(true)
+  const [isDarkMode,      setIsDarkMode]      = useState(false)
+  const [isUserMenuOpen,  setIsUserMenuOpen]  = useState(false)
+  const [isNotifOpen,     setIsNotifOpen]     = useState(false)
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  const [selectedVehicle, setSelectedVehicle] = useState(null)
+
+  // ── Lista enriquecida: base + telemetria + motorista ───────────────────────
+  const vehicleList = useMemo(() =>
+    vehicles.map(v => {
+      const fd  = fleet[v.id] ?? {}
+      const dr  = DRIVERS[v.id] ?? {}
+      const on  = Object.values(fd.sensors ?? {}).some(s => s.value != null)
+      const rawStatus = fd.status ?? 'ok'
+      const uiStatus  = rawStatus === 'danger' ? 'critical' : rawStatus
+      const frotaStatus = !on ? 'disponivel' : uiStatus === 'critical' ? 'manutencao' : 'em_rota'
+
+      return {
+        // Veículo
+        id: v.id, name: v.name, color: v.color, carColor: v.color,
+        // Telemetria
+        sensors: fd.sensors ?? {}, alerts: fd.alerts ?? [], score: fd.score ?? 100,
+        // Derivado
+        on, status: uiStatus, uiStatus, frotaStatus,
+        time: on ? (VEHICLE_ETA[v.id] ?? '10 min') : '-',
+        // Motorista
+        driver: dr.name ?? 'N/A',
+        phone:  dr.phone  ?? '-',
+        email:  dr.email  ?? '-',
+        avatar: dr.avatar ?? '',
+        placa:  dr.placa  ?? 'N/A',
+        model:  dr.model  ?? v.name,
+      }
+    }),
+  [fleet, vehicles])
+
+  // Veículo com alerta mais grave (para notificações)
+  const alertVehicle =
+    vehicleList.find(v => v.uiStatus === 'critical') ??
+    vehicleList.find(v => v.uiStatus === 'warning')
+
+  const hasAlerts = !!alertVehicle
 
   const theme = {
-    bg:        isDarkMode ? 'bg-[#0f141e]'                       : 'bg-[#f5f7fa]',
-    textMain:  isDarkMode ? 'text-gray-100'                      : 'text-gray-800',
-    textMuted: isDarkMode ? 'text-gray-400'                      : 'text-gray-500',
-    header:    isDarkMode ? 'bg-[#151b28] border-b border-gray-800' : 'bg-[#1e2532]',
-    sidebar:   isDarkMode ? 'bg-[#151b28] border-r border-gray-800' : 'bg-white border-r border-gray-100',
-    card:      isDarkMode ? 'bg-[#1a2130] border-gray-800 shadow-none' : 'bg-white border-gray-100 shadow-sm',
-    searchBg:  isDarkMode ? 'bg-[#0f141e]'                      : 'bg-[#f4ecec]',
-    hover:     isDarkMode ? 'hover:bg-white/5'                   : 'hover:bg-gray-50',
-    border:    isDarkMode ? 'border-gray-800'                    : 'border-gray-200',
-    studioBg:  isDarkMode ? 'from-gray-900 via-gray-800 to-[#1a2130]' : 'from-gray-100 via-gray-200 to-white',
-  }
-
-  const goTo = (view, filter) => {
-    setCurrentView(view)
-    if (filter) {
-      // DashboardView manages its own activeFilter — store in a ref-like setter
-      // We pass a key prop to force reset when needed
-    }
+    bg:       isDarkMode ? 'bg-[#0f141e]'                          : 'bg-[#f5f7fa]',
+    textMain: isDarkMode ? 'text-gray-100'                         : 'text-gray-800',
+    textMuted:isDarkMode ? 'text-gray-400'                         : 'text-gray-500',
+    header:   isDarkMode ? 'bg-[#151b28] border-b border-gray-800' : 'bg-[#1e2532]',
+    sidebar:  isDarkMode ? 'bg-[#151b28] border-r border-gray-800' : 'bg-white border-r border-gray-100',
+    card:     isDarkMode ? 'bg-[#1a2130] border-gray-800 shadow-none' : 'bg-white border-gray-100 shadow-sm',
+    searchBg: isDarkMode ? 'bg-[#0f141e]'                          : 'bg-[#f4ecec]',
+    hover:    isDarkMode ? 'hover:bg-white/5'                      : 'hover:bg-gray-50',
+    border:   isDarkMode ? 'border-gray-800'                       : 'border-gray-200',
+    studioBg: isDarkMode ? 'from-gray-900 via-gray-800 to-[#1a2130]' : 'from-gray-100 via-gray-200 to-white',
   }
 
   return (
@@ -87,37 +118,50 @@ export default function App() {
 
         {/* Right controls */}
         <div className="flex items-center gap-4 min-w-[200px] justify-end">
-          {/* WS status dot */}
-          <span title={`WebSocket: ${wsStatus}`} className={`w-2 h-2 rounded-full ${WS_DOT[wsStatus] ?? 'bg-gray-500'} ${wsStatus === 'connected' ? 'animate-pulse' : ''}`}></span>
+          <span
+            title={`WebSocket: ${wsStatus}`}
+            className={`w-2 h-2 rounded-full ${WS_DOT[wsStatus] ?? 'bg-gray-500'} ${wsStatus === 'connected' ? 'animate-pulse' : ''}`}
+          />
 
-          {/* Notifications */}
+          {/* Notificações */}
           <div className="relative">
             <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="hover:bg-white/10 p-2 rounded-full transition-colors relative">
               <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[#1e2532] animate-pulse"></span>
+              {hasAlerts && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[#1e2532] animate-pulse"></span>
+              )}
             </button>
             {isNotifOpen && (
               <div className={`absolute right-0 mt-3 w-80 ${theme.card} rounded-[1.5rem] shadow-xl border ${theme.border} py-2 z-50 animate-in fade-in slide-in-from-top-2`}>
                 <div className={`px-4 py-3 border-b ${theme.border} flex justify-between items-center mb-1`}>
                   <h3 className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>Notificações</h3>
-                  <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Ação Exigida</span>
+                  {hasAlerts && <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Ação Exigida</span>}
                 </div>
-                <button
-                  onClick={() => { setSelectedVehicle({ id: 'L-204', placa: 'XYZ-9876', status: 'critical', driver: 'Ana Paula' }); setIsNotifOpen(false); setCurrentView('dashboard') }}
-                  className={`w-full text-left flex items-start gap-3 px-4 py-3 ${theme.hover} transition-colors border-l-2 border-red-500 bg-red-500/5`}
-                >
-                  <div className="mt-1">
-                    <span className="flex h-2 w-2 relative">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-red-500 mb-0.5">Atenção Imediata: L-204</p>
-                    <p className={`text-xs ${theme.textMuted}`}>Falha iminente nos freios detectada.</p>
-                    <p className={`text-[10px] ${theme.textMuted} mt-1 font-medium`}>AGORA</p>
-                  </div>
-                </button>
+                {alertVehicle ? (
+                  <button
+                    onClick={() => { setSelectedVehicle(alertVehicle); setIsNotifOpen(false); setCurrentView('dashboard') }}
+                    className={`w-full text-left flex items-start gap-3 px-4 py-3 ${theme.hover} transition-colors border-l-2 ${alertVehicle.uiStatus === 'critical' ? 'border-red-500 bg-red-500/5' : 'border-yellow-500 bg-yellow-500/5'}`}
+                  >
+                    <div className="mt-1">
+                      <span className="flex h-2 w-2 relative">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${alertVehicle.uiStatus === 'critical' ? 'bg-red-400' : 'bg-yellow-400'}`}></span>
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${alertVehicle.uiStatus === 'critical' ? 'bg-red-500' : 'bg-yellow-500'}`}></span>
+                      </span>
+                    </div>
+                    <div>
+                      <p className={`text-xs font-bold mb-0.5 ${alertVehicle.uiStatus === 'critical' ? 'text-red-500' : 'text-yellow-500'}`}>
+                        Atenção: {alertVehicle.name} ({alertVehicle.driver})
+                      </p>
+                      <p className={`text-xs ${theme.textMuted}`}>
+                        {alertVehicle.alerts?.[0]?.name?.replace(/_/g, ' ') ?? 'Verificar imediatamente'}
+                        {alertVehicle.alerts?.[0]?.value != null && ` — ${alertVehicle.alerts[0].value.toFixed(1)} ${alertVehicle.alerts[0].unit}`}
+                      </p>
+                      <p className={`text-[10px] ${theme.textMuted} mt-1 font-medium`}>AGORA</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className={`px-4 py-4 text-xs ${theme.textMuted} text-center`}>Nenhuma notificação pendente</div>
+                )}
               </div>
             )}
           </div>
@@ -163,42 +207,13 @@ export default function App() {
         {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
         <aside className={`hidden md:flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[240px]' : 'w-[64px]'}`}>
           <nav className="sticky top-24 flex flex-col gap-1 flex-1">
-            <NavItem
-              icon={<Home />}
-              text="Visão Global"
-              active={currentView === 'dashboard'}
-              onClick={() => setCurrentView('dashboard')}
-              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
-            />
-            <NavItem
-              icon={<Car />}
-              text="Frota Leve"
-              active={currentView === 'frota'}
-              onClick={() => setCurrentView('frota')}
-              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
-            />
-            <NavItem
-              icon={<Activity />}
-              text="Modelos Preditivos"
-              alert
-              active={currentView === 'dashboard'}
-              onClick={() => setCurrentView('dashboard')}
-              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
-            />
-            <NavItem
-              icon={<Wrench />}
-              text="Plano de Manutenção"
-              active={currentView === 'dashboard'}
-              onClick={() => setCurrentView('dashboard')}
-              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
-            />
-            <NavItem
-              icon={<DollarSign />}
-              text="Gestão Financeira"
-              active={currentView === 'financeira'}
-              onClick={() => setCurrentView('financeira')}
-              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
-            />
+            <NavItem icon={<Home />} text="Visão Global"       active={currentView === 'dashboard'}  onClick={() => setCurrentView('dashboard')}  isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+            <NavItem icon={<Car />}  text="Frota Leve"         active={currentView === 'frota'}       onClick={() => setCurrentView('frota')}       isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+            <NavItem icon={<Activity />} text="Modelos Preditivos" alert={hasAlerts}
+              active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+            <NavItem icon={<Wrench />}    text="Plano de Manutenção" active={currentView === 'dashboard'} onClick={() => setCurrentView('dashboard')} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+            <NavItem icon={<DollarSign />} text="Gestão Financeira"  active={currentView === 'financeira'} onClick={() => setCurrentView('financeira')} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
 
             <hr className={`my-4 ${theme.border}`} />
             {isSidebarOpen
@@ -230,13 +245,13 @@ export default function App() {
             isDarkMode={isDarkMode}
             isSidebarOpen={isSidebarOpen}
             setSelectedVehicle={setSelectedVehicle}
-            fleetDrivers={FLEET_DRIVERS}
-            wsData={{ wsStatus, fleet, activeVehicleId }}
+            vehicleList={vehicleList}
+            wsStatus={wsStatus}
           />
         )}
 
         {currentView === 'frota' && (
-          <FrotaView theme={theme} isDarkMode={isDarkMode} fleetDrivers={FLEET_DRIVERS} />
+          <FrotaView theme={theme} isDarkMode={isDarkMode} vehicleList={vehicleList} />
         )}
 
         {currentView === 'financeira' && (
