@@ -1,166 +1,258 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useFleet }     from './hooks/useFleet'
-import WheelCanvas      from './components/WheelCanvas'
-import EventFeed        from './components/EventFeed'
-import VehicleSidebar   from './components/VehicleSidebar'
-import FleetMap         from './components/FleetMap'
-import ScoreChart       from './components/ScoreChart'
-import AlertHistory     from './components/AlertHistory'
+import {
+  Menu, Search, SlidersHorizontal, Bell, ChevronDown,
+  User, Settings, LogOut, Home, Car, Activity, Wrench,
+  DollarSign, Moon, Sun,
+} from 'lucide-react'
 
-const PID_KEY = { '0x0C': 'rpm', '0x0D': 'speed', '0x05': 'temp', '0x0B': 'map', '0x24': 'lambda' }
+import { useFleet } from './hooks/useFleet'
+import NavItem       from './components/NavItem'
+import VehicleModal  from './components/VehicleModal'
+import DashboardView from './views/DashboardView'
+import FrotaView     from './views/FrotaView'
+import FinanceiraView from './views/FinanceiraView'
 
-const WS_LABEL = { connected: '● online', disconnected: '○ offline', error: '⚠ erro' }
-const WS_COLOR = { connected: '#1D9E75',  disconnected: '#64748b',    error: '#E24B4A' }
+const FLEET_DRIVERS = [
+  { id: '1', name: 'Carlos Silva',   status: 'em_rota',    time: '14 min', placa: 'XYZ-9876', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Carlos&backgroundColor=e2e8f0',   carColor: '#3b82f6', phone: '(11) 98888-7777', email: 'carlos.s@zerith.com',   model: 'Tracker 2023' },
+  { id: '2', name: 'Ana Paula',      status: 'em_rota',    time: '5 min',  placa: 'ABC-1234', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ana&backgroundColor=e2e8f0',      carColor: '#ef4444', phone: '(11) 97777-6666', email: 'ana.p@zerith.com',      model: 'Nivus 2024'   },
+  { id: '3', name: 'João Marcos',    status: 'disponivel', time: '-',      placa: 'QWE-5555', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Joao&backgroundColor=e2e8f0',     carColor: '#10b981', phone: '(11) 96666-5555', email: 'joao.m@zerith.com',     model: 'Corolla 2022' },
+  { id: '4', name: 'Mariana Costa',  status: 'disponivel', time: '-',      placa: 'RTY-1122', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Mariana&backgroundColor=e2e8f0', carColor: '#f59e0b', phone: '(11) 95555-4444', email: 'mariana.c@zerith.com', model: 'Kicks 2023'   },
+  { id: '5', name: 'Ricardo Dias',   status: 'manutencao', time: '-',      placa: 'UIO-9988', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ricardo&backgroundColor=e2e8f0', carColor: '#64748b', phone: '(11) 94444-3333', email: 'ricardo.d@zerith.com', model: 'Compass 2022' },
+  { id: '6', name: 'Fernanda Lima',  status: 'disponivel', time: '-',      placa: 'BNM-5544', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Fernanda&backgroundColor=e2e8f0',carColor: '#a855f7', phone: '(11) 93333-2222', email: 'fernanda.l@zerith.com',model: 'Creta 2024'   },
+]
+
+const WS_DOT = { connected: 'bg-green-500', disconnected: 'bg-gray-500', error: 'bg-red-500' }
 
 export default function App() {
-  const { fleet, vehicles, activeVehicleId, wsStatus, spinTo } = useFleet()
+  const { fleet, vehicles, activeVehicleId, wsStatus } = useFleet()
 
-  // ── Enriched vehicle list ──────────────────────────────────────────────────
-  const vehicleList = useMemo(() =>
-    vehicles.map(v => {
-      const fd = fleet[v.id] ?? {}
-      const on = Object.values(fd.sensors ?? {}).some(s => s.value != null)
-      return { ...v, ...fd, on }
-    }),
-  [fleet, vehicles])
+  const [currentView,    setCurrentView]    = useState('dashboard')
+  const [isSidebarOpen,  setIsSidebarOpen]  = useState(true)
+  const [isDarkMode,     setIsDarkMode]     = useState(false)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isNotifOpen,    setIsNotifOpen]    = useState(false)
+  const [isSearchFocused,setIsSearchFocused]= useState(false)
+  const [selectedVehicle,setSelectedVehicle]= useState(null)
 
-  // ── Sensor snapshot helper ─────────────────────────────────────────────────
-  const sensorSnap = (fd) =>
-    Object.entries(fd.sensors ?? {}).reduce((acc, [pid, s]) => {
-      const k = PID_KEY[pid]
-      if (k) acc[k] = { value: s.value, unit: s.unit }
-      return acc
-    }, {})
+  const theme = {
+    bg:        isDarkMode ? 'bg-[#0f141e]'                       : 'bg-[#f5f7fa]',
+    textMain:  isDarkMode ? 'text-gray-100'                      : 'text-gray-800',
+    textMuted: isDarkMode ? 'text-gray-400'                      : 'text-gray-500',
+    header:    isDarkMode ? 'bg-[#151b28] border-b border-gray-800' : 'bg-[#1e2532]',
+    sidebar:   isDarkMode ? 'bg-[#151b28] border-r border-gray-800' : 'bg-white border-r border-gray-100',
+    card:      isDarkMode ? 'bg-[#1a2130] border-gray-800 shadow-none' : 'bg-white border-gray-100 shadow-sm',
+    searchBg:  isDarkMode ? 'bg-[#0f141e]'                      : 'bg-[#f4ecec]',
+    hover:     isDarkMode ? 'hover:bg-white/5'                   : 'hover:bg-gray-50',
+    border:    isDarkMode ? 'border-gray-800'                    : 'border-gray-200',
+    studioBg:  isDarkMode ? 'from-gray-900 via-gray-800 to-[#1a2130]' : 'from-gray-100 via-gray-200 to-white',
+  }
 
-  // ── Events feed (merged alerts from all vehicles) ──────────────────────────
-  const events = useMemo(() => {
-    const all = []
-    vehicles.forEach(v => {
-      const fd = fleet[v.id]
-      if (!fd) return
-      fd.alerts.forEach(a => {
-        all.push({
-          id:        a.id,
-          vehicleId: v.id,
-          type:      a.level === 'danger' ? 'danger' : 'warn',
-          msg:       `${a.name.replace(/_/g, ' ')}: ${
-                       typeof a.value === 'number'
-                         ? a.value.toFixed(a.value < 10 ? 2 : 0)
-                         : a.value
-                     } ${a.unit}`,
-          ts:        a.timestamp,
-          vehicle: {
-            initials: v.name.slice(0, 2).toUpperCase(),
-            model:    v.name,
-            color:    '#fff',
-            bg:       v.color,
-          },
-          sensors: sensorSnap(fd),
-        })
-      })
-    })
-    return all.sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 10)
-  }, [fleet, vehicles])  // eslint-disable-line react-hooks/exhaustive-deps
+  const goTo = (view, filter) => {
+    setCurrentView(view)
+    if (filter) {
+      // DashboardView manages its own activeFilter — store in a ref-like setter
+      // We pass a key prop to force reset when needed
+    }
+  }
 
-  // ── Alert history for right panel ─────────────────────────────────────────
-  const alertHistory = useMemo(() =>
-    events.slice(0, 8).map(e => ({
-      type: e.type,
-      msg:  `${e.vehicle.model} — ${e.msg}`,
-      ts:   e.ts,
-    })),
-  [events])
-
-  // ── Score history (snapshot every 5 s, keep last 40 frames) ───────────────
-  const [scoreHistory, setScoreHistory] = useState([[]])
-  const fleetRef    = useRef(fleet)
-  const vehiclesRef = useRef(vehicles)
-  useEffect(() => { fleetRef.current    = fleet    }, [fleet])
-  useEffect(() => { vehiclesRef.current = vehicles }, [vehicles])
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      const frame = vehiclesRef.current.map(v => fleetRef.current[v.id]?.score ?? 100)
-      setScoreHistory(prev => [...prev, frame].slice(-40))
-    }, 5000)
-    return () => clearInterval(t)
-  }, [])
-
-  // ── Layout ─────────────────────────────────────────────────────────────────
   return (
-    <div
-      className="h-screen overflow-hidden bg-gray-950 text-gray-100 font-sans"
-      style={{ display: 'grid', gridTemplateColumns: '196px 1fr 176px', gridTemplateRows: 'auto 1fr' }}
-    >
-      {/* ── Navbar (spans all 3 cols) ──────────────────────────────────────── */}
-      <header
-        className="border-b border-gray-800 px-5 py-3 flex items-center gap-3 bg-gray-950"
-        style={{ gridColumn: '1 / -1' }}
-      >
-        <span className="text-sm font-bold tracking-tight text-white">ZERITH</span>
-        <span className="text-[10px] text-gray-500 uppercase tracking-widest">Fleet Intelligence</span>
-        <Link
-          to="/gestao"
-          className="ml-auto mr-4 text-[10px] uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          Gestão →
-        </Link>
-        <span className="text-[10px] tabular-nums" style={{ color: WS_COLOR[wsStatus] ?? '#64748b' }}>
-          {WS_LABEL[wsStatus] ?? wsStatus}
-        </span>
-      </header>
+    <div className={`min-h-screen ${theme.bg} ${theme.textMain} font-sans transition-colors duration-300 flex flex-col`}>
 
-      {/* ── Left: VehicleSidebar ──────────────────────────────────────────── */}
-      <VehicleSidebar
-        vehicles={vehicleList}
-        activeVehicleId={activeVehicleId}
-        onSpin={spinTo}
-      />
-
-      {/* ── Center: wheel (top) + map & feed (bottom) ─────────────────────── */}
-      <main
-        className="flex flex-col overflow-hidden border-x border-gray-800"
-      >
-        {/* Half-moon wheel — flex-shrink-0 so it never compresses */}
-        <div className="flex justify-center flex-shrink-0 bg-gray-950 border-b border-gray-800 overflow-hidden">
-          <WheelCanvas
-            vehicles={vehicleList}
-            activeVehicleId={activeVehicleId}
-            onSpin={spinTo}
-          />
+      {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+      <header className={`sticky top-0 z-50 flex items-center justify-between px-6 py-3 ${theme.header} text-white shadow-md transition-colors duration-300`}>
+        <div className="flex items-center gap-6 min-w-[200px]">
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hover:bg-white/10 p-2 rounded-lg transition-colors">
+            <Menu size={24} />
+          </button>
+          <span className="text-[22px] font-light tracking-[0.25em] mt-1 text-white select-none">ZERITH</span>
         </div>
 
-        {/* Below wheel: FleetMap (left) | EventFeed (right) */}
-        <div
-          className="flex-1 overflow-hidden"
-          style={{ display: 'grid', gridTemplateColumns: '1fr 300px' }}
-        >
-          <FleetMap
-            vehicles={vehicleList}
-            activeVehicleId={activeVehicleId}
-            events={events}
-          />
-
-          <div className="border-l border-gray-800 overflow-hidden flex flex-col">
-            <EventFeed
-              events={events}
-              onFocus={spinTo}
-              onSpin={spinTo}
+        {/* Search */}
+        <div className="flex-1 max-w-2xl px-8 relative">
+          <div className={`relative flex items-center ${theme.searchBg} rounded-full transition-all duration-300 ${isSearchFocused ? 'ring-2 ring-blue-400 shadow-lg' : 'shadow-inner'}`}>
+            <Search size={16} className="text-gray-500 ml-5" />
+            <input
+              type="text"
+              placeholder="Buscar placa, motorista ou relatório..."
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              className={`w-full bg-transparent ${isDarkMode ? 'text-white' : 'text-gray-700'} placeholder-gray-500 py-2.5 px-4 text-sm focus:outline-none`}
             />
+            <button className="pr-5 text-gray-500 hover:text-blue-500 transition-colors">
+              <SlidersHorizontal size={16} />
+            </button>
           </div>
         </div>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-4 min-w-[200px] justify-end">
+          {/* WS status dot */}
+          <span title={`WebSocket: ${wsStatus}`} className={`w-2 h-2 rounded-full ${WS_DOT[wsStatus] ?? 'bg-gray-500'} ${wsStatus === 'connected' ? 'animate-pulse' : ''}`}></span>
+
+          {/* Notifications */}
+          <div className="relative">
+            <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="hover:bg-white/10 p-2 rounded-full transition-colors relative">
+              <Bell size={20} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[#1e2532] animate-pulse"></span>
+            </button>
+            {isNotifOpen && (
+              <div className={`absolute right-0 mt-3 w-80 ${theme.card} rounded-[1.5rem] shadow-xl border ${theme.border} py-2 z-50 animate-in fade-in slide-in-from-top-2`}>
+                <div className={`px-4 py-3 border-b ${theme.border} flex justify-between items-center mb-1`}>
+                  <h3 className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>Notificações</h3>
+                  <span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Ação Exigida</span>
+                </div>
+                <button
+                  onClick={() => { setSelectedVehicle({ id: 'L-204', placa: 'XYZ-9876', status: 'critical', driver: 'Ana Paula' }); setIsNotifOpen(false); setCurrentView('dashboard') }}
+                  className={`w-full text-left flex items-start gap-3 px-4 py-3 ${theme.hover} transition-colors border-l-2 border-red-500 bg-red-500/5`}
+                >
+                  <div className="mt-1">
+                    <span className="flex h-2 w-2 relative">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-red-500 mb-0.5">Atenção Imediata: L-204</p>
+                    <p className={`text-xs ${theme.textMuted}`}>Falha iminente nos freios detectada.</p>
+                    <p className={`text-[10px] ${theme.textMuted} mt-1 font-medium`}>AGORA</p>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="w-px h-6 bg-gray-600/50 mx-1"></div>
+
+          {/* User menu */}
+          <div className="relative">
+            <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center gap-2 hover:bg-white/10 p-1 pr-2.5 rounded-full transition-colors focus:outline-none">
+              <div className="w-7 h-7 bg-gradient-to-tr from-gray-500 to-gray-400 rounded-full flex items-center justify-center">
+                <User size={16} className="text-white" />
+              </div>
+              <ChevronDown size={14} className={`text-gray-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {isUserMenuOpen && (
+              <div className={`absolute right-0 mt-3 w-56 ${theme.card} rounded-2xl shadow-xl border ${theme.border} py-2 z-30`}>
+                <div className={`px-4 py-3 border-b ${theme.border} mb-1`}>
+                  <p className={`text-sm font-medium ${theme.textMain}`}>Administrador</p>
+                  <p className={`text-xs ${theme.textMuted}`}>admin@zerith.com.br</p>
+                </div>
+                <button className={`w-full text-left flex items-center gap-3 px-4 py-2 ${theme.hover} transition-colors`}>
+                  <Settings size={16} className={theme.textMain} />
+                  <span className={`text-sm ${theme.textMain}`}>Configurações</span>
+                </button>
+                <Link to="/gestao" className={`w-full text-left flex items-center gap-3 px-4 py-2 ${theme.hover} transition-colors`}>
+                  <Home size={16} className={theme.textMain} />
+                  <span className={`text-sm ${theme.textMain}`}>Módulo Gestão</span>
+                </Link>
+                <div className={`h-px ${theme.border} my-1`}></div>
+                <button className={`w-full text-left flex items-center gap-3 px-4 py-2 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}>
+                  <LogOut size={16} className="text-red-500" />
+                  <span className="text-sm text-red-500">Sair</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* ── MAIN LAYOUT ────────────────────────────────────────────────────── */}
+      <main className="max-w-[1500px] mx-auto w-full pt-6 px-6 flex gap-6 flex-1">
+
+        {/* ── SIDEBAR ──────────────────────────────────────────────────────── */}
+        <aside className={`hidden md:flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[240px]' : 'w-[64px]'}`}>
+          <nav className="sticky top-24 flex flex-col gap-1 flex-1">
+            <NavItem
+              icon={<Home />}
+              text="Visão Global"
+              active={currentView === 'dashboard'}
+              onClick={() => setCurrentView('dashboard')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
+            />
+            <NavItem
+              icon={<Car />}
+              text="Frota Leve"
+              active={currentView === 'frota'}
+              onClick={() => setCurrentView('frota')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
+            />
+            <NavItem
+              icon={<Activity />}
+              text="Modelos Preditivos"
+              alert
+              active={currentView === 'dashboard'}
+              onClick={() => setCurrentView('dashboard')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
+            />
+            <NavItem
+              icon={<Wrench />}
+              text="Plano de Manutenção"
+              active={currentView === 'dashboard'}
+              onClick={() => setCurrentView('dashboard')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
+            />
+            <NavItem
+              icon={<DollarSign />}
+              text="Gestão Financeira"
+              active={currentView === 'financeira'}
+              onClick={() => setCurrentView('financeira')}
+              isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode}
+            />
+
+            <hr className={`my-4 ${theme.border}`} />
+            {isSidebarOpen
+              ? <h3 className={`px-3 text-[10px] font-bold ${theme.textMuted} uppercase mb-2 animate-in fade-in`}>Filiais</h3>
+              : <div className={`w-6 h-px ${theme.border} mx-auto mb-2`}></div>
+            }
+            <NavItem text="Matriz (São Paulo)" small isOpen={isSidebarOpen} textOnly theme={theme} />
+            <NavItem text="Operação Sul"       small isOpen={isSidebarOpen} textOnly theme={theme} />
+          </nav>
+
+          <div className={`sticky bottom-6 mt-8 p-1 ${isSidebarOpen ? 'bg-transparent' : 'flex justify-center'}`}>
+            <button
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              title="Alternar Tema"
+              className={`flex items-center ${isSidebarOpen ? 'justify-between w-full px-4 py-3' : 'justify-center p-3'} rounded-xl ${isDarkMode ? 'bg-[#1e2532] text-blue-400' : 'bg-white shadow-sm border border-gray-100 text-gray-700'} hover:opacity-80 transition-all`}
+            >
+              <div className="flex items-center gap-3">
+                {isDarkMode ? <Moon size={20} /> : <Sun size={20} />}
+                {isSidebarOpen && <span className="font-medium text-sm">Modo {isDarkMode ? 'Escuro' : 'Claro'}</span>}
+              </div>
+            </button>
+          </div>
+        </aside>
+
+        {/* ── VIEWS ──────────────────────────────────────────────────────────── */}
+        {currentView === 'dashboard' && (
+          <DashboardView
+            theme={theme}
+            isDarkMode={isDarkMode}
+            isSidebarOpen={isSidebarOpen}
+            setSelectedVehicle={setSelectedVehicle}
+            fleetDrivers={FLEET_DRIVERS}
+            wsData={{ wsStatus, fleet, activeVehicleId }}
+          />
+        )}
+
+        {currentView === 'frota' && (
+          <FrotaView theme={theme} isDarkMode={isDarkMode} fleetDrivers={FLEET_DRIVERS} />
+        )}
+
+        {currentView === 'financeira' && (
+          <FinanceiraView theme={theme} isDarkMode={isDarkMode} />
+        )}
       </main>
 
-      {/* ── Right: AlertHistory (top) + ScoreChart (bottom) ──────────────── */}
-      <aside className="flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-hidden border-b border-gray-800">
-          <AlertHistory alertHistory={alertHistory} />
-        </div>
-        <div className="flex-shrink-0">
-          <ScoreChart vehicles={vehicleList} scoreHistory={scoreHistory} />
-        </div>
-      </aside>
+      {/* ── MODAL ──────────────────────────────────────────────────────────── */}
+      {selectedVehicle && (
+        <VehicleModal
+          vehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+          theme={theme}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </div>
   )
 }
