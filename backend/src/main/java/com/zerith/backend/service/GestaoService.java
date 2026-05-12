@@ -41,24 +41,19 @@ public class GestaoService {
     // ── Dashboard ─────────────────────────────────────────────────────────────
 
     public Map<String, Object> getDashboard() {
-        long totalLeituras   = repository.count();
-        long veiculosAtivos  = toLongMap(repository.countByVehicle()).size();
-        long alertasDanger   = repository.countDangerEvents();
-        long alertasWarning  = repository.countWarningEvents();
+        long totalLeituras  = repository.count();
+        long veiculosAtivos = toLongMap(repository.countByVehicle()).size();
+        long alertasDanger  = repository.countDangerEvents();
+        long alertasWarning = repository.countWarningEvents();
 
-        Map<String, Long> speedAlerts = toLongMap(repository.countSpeedAlerts());
-        Map<String, Long> tempAlerts  = toLongMap(repository.countTempAlerts());
-        Map<String, Long> rpmAlerts   = toLongMap(repository.countRpmAlerts());
+        Map<String, Map<String, Double>> latest = buildLatestByVehicle(repository.latestValuePerVehiclePerPid());
 
         List<Map<String, Object>> scores = new ArrayList<>();
         for (String[] v : FLEET) {
-            long anomalies = speedAlerts.getOrDefault(v[0], 0L)
-                + tempAlerts.getOrDefault(v[0], 0L)
-                + rpmAlerts.getOrDefault(v[0], 0L);
             scores.add(Map.of(
                 "vehicleId", v[0],
-                "nome", v[1],
-                "score", calcScore(anomalies)
+                "nome",      v[1],
+                "score",     calcScoreFromLatest(latest.get(v[0]))
             ));
         }
 
@@ -79,6 +74,7 @@ public class GestaoService {
         Map<String, Long>   tempAlerts  = toLongMap(repository.countTempAlerts());
         Map<String, Long>   rpmAlerts   = toLongMap(repository.countRpmAlerts());
         Map<String, Double> sumSpeed    = toDoubleMap(repository.sumSpeedByVehicle());
+        Map<String, Map<String, Double>> latest = buildLatestByVehicle(repository.latestValuePerVehiclePerPid());
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (String[] v : FLEET) {
@@ -93,7 +89,7 @@ public class GestaoService {
                 "nome",          v[2],
                 "veiculo",       v[1],
                 "placa",         v[3],
-                "score",         calcScore(alertas),
+                "score",         calcScoreFromLatest(latest.get(id)),
                 "alertas",       alertas,
                 "kmRodados",     round1(km),
                 "status",        levelFromCount(alertas),
@@ -269,8 +265,29 @@ public class GestaoService {
         );
     }
 
-    private int calcScore(long anomalies) {
-        return (int) Math.max(20, 100 - Math.min(anomalies * 3L, 80L));
+    private Map<String, Map<String, Double>> buildLatestByVehicle(List<Object[]> rows) {
+        Map<String, Map<String, Double>> result = new HashMap<>();
+        for (Object[] row : rows) {
+            String vehicleId = (String) row[0];
+            String pid       = (String) row[1];
+            double value     = ((Number) row[2]).doubleValue();
+            result.computeIfAbsent(vehicleId, k -> new HashMap<>()).put(pid, value);
+        }
+        return result;
+    }
+
+    private int calcScoreFromLatest(Map<String, Double> latest) {
+        if (latest == null || latest.isEmpty()) return 85;
+        int penalties = 0;
+        Double temp   = latest.get("0x05");
+        Double speed  = latest.get("0x0D");
+        Double rpm    = latest.get("0x0C");
+        Double lambda = latest.get("0x24");
+        if (temp   != null && temp   > 100)                         penalties += 20;
+        if (speed  != null && speed  > 100)                         penalties += 30;
+        if (rpm    != null && rpm    > 5000)                        penalties += 15;
+        if (lambda != null && (lambda < 13.5 || lambda > 15.5))    penalties += 10;
+        return Math.max(0, 100 - penalties);
     }
 
     private String levelFromCount(long count) {

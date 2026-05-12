@@ -188,10 +188,6 @@ export default function App() {
                   <Settings size={16} className={theme.textMain} />
                   <span className={`text-sm ${theme.textMain}`}>Configurações</span>
                 </button>
-                <Link to="/gestao" className={`w-full text-left flex items-center gap-3 px-4 py-2 ${theme.hover} transition-colors`}>
-                  <Home size={16} className={theme.textMain} />
-                  <span className={`text-sm ${theme.textMain}`}>Módulo Gestão</span>
-                </Link>
                 <div className={`h-px ${theme.border} my-1`}></div>
                 <button
                   onClick={() => { logout(); navigate('/login') }}

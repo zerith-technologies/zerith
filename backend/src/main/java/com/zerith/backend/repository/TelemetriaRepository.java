@@ -47,4 +47,8 @@ public interface TelemetriaRepository extends JpaRepository<Telemetria, Long> {
 
     @Query("SELECT t FROM Telemetria t WHERE t.vehicleId IS NOT NULL AND ((t.pid = '0x0D' AND t.value > 100) OR (t.pid = '0x05' AND t.value > 90) OR (t.pid = '0x0C' AND t.value > 5000) OR (t.pid = '0x24' AND (t.value < 12.0 OR t.value > 16.0))) ORDER BY t.timestamp DESC")
     List<Telemetria> findAllAnomalies(Pageable pageable);
+
+    // Returns [vehicleId, pid, value] for the most recent reading of each PID per vehicle
+    @Query("SELECT t.vehicleId, t.pid, t.value FROM Telemetria t WHERE t.vehicleId IS NOT NULL AND t.pid IN ('0x05', '0x0C', '0x0D', '0x24') AND t.timestamp = (SELECT MAX(t2.timestamp) FROM Telemetria t2 WHERE t2.vehicleId = t.vehicleId AND t2.pid = t.pid)")
+    List<Object[]> latestValuePerVehiclePerPid();
 }

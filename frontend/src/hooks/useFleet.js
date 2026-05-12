@@ -71,13 +71,17 @@ export function useFleet() {
   useEffect(() => { activeIdRef.current = activeVehicleId }, [activeVehicleId])
 
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws'
+    const wsUrl = import.meta.env.VITE_WS_URL ||
+      (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
+      window.location.host + '/ws'
+    console.log('[useFleet] Connecting to WebSocket:', wsUrl)
     const client = new Client({
       brokerURL: wsUrl,
       reconnectDelay: 5000,
     })
 
     client.onConnect = () => {
+      console.log('[useFleet] STOMP connected')
       setWsStatus('connected')
 
       client.subscribe('/topic/telemetry', (msg) => {
@@ -118,8 +122,8 @@ export function useFleet() {
       })
     }
 
-    client.onDisconnect  = () => setWsStatus('disconnected')
-    client.onStompError  = () => setWsStatus('error')
+    client.onDisconnect  = () => { console.log('[useFleet] STOMP disconnected'); setWsStatus('disconnected') }
+    client.onStompError  = (frame) => { console.error('[useFleet] STOMP error:', frame); setWsStatus('error') }
 
     client.activate()
     return () => { client.deactivate() }
