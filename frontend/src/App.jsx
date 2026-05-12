@@ -16,11 +16,11 @@ import FinanceiraView from './views/FinanceiraView'
 
 // Motoristas da frota ZERITH — vinculados ao ID real do veículo
 const DRIVERS = {
-  mobi:    { name: 'Carlos Silva',  phone: '(34) 98811-2233', email: 'carlos.silva@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=CarlosSilvaZerith&backgroundColor=e2e8f0',  placa: 'HDJ-5823', model: 'Fiat Mobi 1.0 2022'        },
-  saveiro: { name: 'Ana Paula',     phone: '(34) 97722-3344', email: 'ana.paula@zerith.com.br',     avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=AnaPaulaZerith&backgroundColor=e2e8f0',     placa: 'QLP-3947', model: 'VW Saveiro G7 1.6'          },
-  polo:    { name: 'João Marcos',   phone: '(34) 96633-4455', email: 'joao.marcos@zerith.com.br',   avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=JoaoMarcosZerith&backgroundColor=e2e8f0',   placa: 'KRT-2156', model: 'VW Polo GTS 1.0 TSI 2023'  },
-  strada:  { name: 'Mariana Costa', phone: '(34) 95544-5566', email: 'mariana.costa@zerith.com.br', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=MarianaCosta&backgroundColor=e2e8f0',       placa: 'BFN-8432', model: 'Fiat Strada Endurance 2023' },
-  argo:    { name: 'Ricardo Dias',  phone: '(34) 94455-6677', email: 'ricardo.dias@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=RicardoDiasZerith&backgroundColor=e2e8f0',  placa: 'MXV-6019', model: 'Fiat Argo Drive 1.0 2023'  },
+  mobi:    { name: 'Carlos Mendes', phone: '(34) 98811-2233', email: 'carlos.mendes@zerith.com.br', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=CarlosMendesZerith&backgroundColor=e2e8f0', placa: 'PBM-3421', model: 'Fiat Mobi 1.0 2022'        },
+  saveiro: { name: 'Ana Paula',     phone: '(34) 97722-3344', email: 'ana.paula@zerith.com.br',     avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=AnaPaulaZerith&backgroundColor=e2e8f0',     placa: 'QCX-7890', model: 'VW Saveiro G7 1.6'          },
+  polo:    { name: 'Roberto Lima',  phone: '(34) 96633-4455', email: 'roberto.lima@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=RobertoLimaZerith&backgroundColor=e2e8f0',  placa: 'RTD-5566', model: 'VW Polo GTS 1.0 TSI 2023'  },
+  strada:  { name: 'Marcos Souza',  phone: '(34) 95544-5566', email: 'marcos.souza@zerith.com.br',  avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=MarcosSouzaZerith&backgroundColor=e2e8f0',  placa: 'SYE-1234', model: 'Fiat Strada Endurance 2023' },
+  argo:    { name: 'Juliana Costa', phone: '(34) 94455-6677', email: 'juliana.costa@zerith.com.br', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=JulianaCosta&backgroundColor=e2e8f0',       placa: 'TZA-4321', model: 'Fiat Argo Drive 1.0 2023'  },
 }
 
 // ETA estável por veículo (não muda a cada render)
