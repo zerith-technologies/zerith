@@ -71,10 +71,9 @@ export function useFleet() {
   useEffect(() => { activeIdRef.current = activeVehicleId }, [activeVehicleId])
 
   useEffect(() => {
-    const wsUrl = import.meta.env.VITE_WS_URL ||
-      (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-      window.location.host + '/ws'
-    console.log('[useFleet] Connecting to WebSocket:', wsUrl)
+    const wsUrl = import.meta.env.VITE_WS_URL ??
+      `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ws`
+    console.log('[useFleet] Connecting to:', wsUrl)
     const client = new Client({
       brokerURL: wsUrl,
       reconnectDelay: 5000,
