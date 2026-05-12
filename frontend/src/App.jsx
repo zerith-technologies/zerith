@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   Menu, Search, SlidersHorizontal, Bell, ChevronDown,
   User, Settings, LogOut, Home, Car, Activity, Wrench,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 
 import { useFleet } from './hooks/useFleet'
+import { logout } from './auth'
 import NavItem        from './components/NavItem'
 import VehicleModal   from './components/VehicleModal'
 import DashboardView  from './views/DashboardView'
@@ -28,6 +29,7 @@ const VEHICLE_ETA = { mobi: '14 min', saveiro: '8 min', polo: '22 min', strada: 
 const WS_DOT = { connected: 'bg-green-500', disconnected: 'bg-gray-500', error: 'bg-red-500' }
 
 export default function App() {
+  const navigate = useNavigate()
   const { fleet, vehicles, wsStatus } = useFleet()
 
   const [currentView,     setCurrentView]     = useState('dashboard')
@@ -191,7 +193,10 @@ export default function App() {
                   <span className={`text-sm ${theme.textMain}`}>Módulo Gestão</span>
                 </Link>
                 <div className={`h-px ${theme.border} my-1`}></div>
-                <button className={`w-full text-left flex items-center gap-3 px-4 py-2 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}>
+                <button
+                  onClick={() => { logout(); navigate('/login') }}
+                  className={`w-full text-left flex items-center gap-3 px-4 py-2 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}
+                >
                   <LogOut size={16} className="text-red-500" />
                   <span className="text-sm text-red-500">Sair</span>
                 </button>

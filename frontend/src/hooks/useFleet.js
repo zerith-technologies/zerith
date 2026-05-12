@@ -71,8 +71,9 @@ export function useFleet() {
   useEffect(() => { activeIdRef.current = activeVehicleId }, [activeVehicleId])
 
   useEffect(() => {
+    const wsUrl = import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080/ws'
     const client = new Client({
-      brokerURL: 'ws://localhost:8080/ws',
+      brokerURL: wsUrl,
       reconnectDelay: 5000,
     })
 

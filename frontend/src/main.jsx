@@ -1,7 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
+
+import LandingPage   from './pages/LandingPage'
+import LoginPage     from './pages/LoginPage'
+import ProtectedRoute from './components/ProtectedRoute'
+
 import App           from './App.jsx'
 import GestaoLayout  from './gestao/GestaoLayout.jsx'
 import GestaoHome    from './gestao/pages/GestaoHome.jsx'
@@ -17,17 +22,41 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/gestao" element={<GestaoLayout />}>
-          <Route index                  element={<GestaoHome />}    />
-          <Route path="motoristas"      element={<Motoristas />}    />
-          <Route path="veiculos"        element={<Veiculos />}      />
-          <Route path="financeiro"      element={<Financeiro />}    />
-          <Route path="manutencao"      element={<Manutencao />}    />
-          <Route path="ocorrencias"     element={<Ocorrencias />}   />
-          <Route path="relatorios"      element={<Relatorios />}    />
-          <Route path="configuracoes"   element={<Configuracoes />} />
+        {/* ── Público ────────────────────────────────────────────────────── */}
+        <Route path="/"      element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />}   />
+
+        {/* ── Dashboard (protegido) ───────────────────────────────────────── */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <App />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ── Módulo gerencial (protegido) ────────────────────────────────── */}
+        <Route
+          path="/gestao"
+          element={
+            <ProtectedRoute>
+              <GestaoLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index                element={<GestaoHome />}    />
+          <Route path="motoristas"    element={<Motoristas />}    />
+          <Route path="veiculos"      element={<Veiculos />}      />
+          <Route path="financeiro"    element={<Financeiro />}    />
+          <Route path="manutencao"    element={<Manutencao />}    />
+          <Route path="ocorrencias"   element={<Ocorrencias />}   />
+          <Route path="relatorios"    element={<Relatorios />}    />
+          <Route path="configuracoes" element={<Configuracoes />} />
         </Route>
+
+        {/* ── Fallback ────────────────────────────────────────────────────── */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
