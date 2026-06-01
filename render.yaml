@@ -1,0 +1,23 @@
+# ================================================================
+# ZERITH Backend — Deploy as Code (Render)
+# Referência: https://render.com/docs/render-yaml-spec
+# ================================================================
+
+services:
+  - type: web
+    name: zerith-backend
+    runtime: docker
+    plan: starter                     # $7/mês — sem cold start
+    region: oregon                    # us-west-2 (mais próximo do SA da Neon)
+    branch: main
+    dockerfilePath: ./Dockerfile
+
+    healthCheckPath: /actuator/health
+
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        sync: false                   # Valor inserido manualmente no painel do Render
+      - key: PORT
+        value: 8080

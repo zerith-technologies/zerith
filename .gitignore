@@ -1,0 +1,33 @@
+# ================================================================
+# ZERITH Backend — .gitignore
+# ================================================================
+
+# Segredos — NUNCA commitar
+.env
+*.env.local
+
+# Maven
+target/
+*.jar
+*.war
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Spring Boot
+spring-shell.log
