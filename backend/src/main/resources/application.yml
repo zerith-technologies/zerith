@@ -14,10 +14,11 @@ spring:
     hibernate:
       ddl-auto: validate          # Flyway cuida do schema — nunca deixar create/update em prod
     show-sql: false
+    open-in-view: false           # Evita queries durante view rendering
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # dialect detectado automaticamente — não especificar explicitamente
 
   # Flyway
   flyway:
@@ -62,6 +63,7 @@ spring:
 
   jpa:
     show-sql: true                  # Apenas em dev
+    open-in-view: false
 
 logging:
   level:
@@ -92,6 +94,14 @@ spring:
 
   jpa:
     show-sql: false
+    open-in-view: false
+
+  # Desabilita senha gerada automaticamente em prod
+  # A SecurityConfig.java cuida da autenticação
+  security:
+    user:
+      name: disabled
+      password: disabled
 
 logging:
   level:

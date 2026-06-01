@@ -297,6 +297,7 @@ VITE_ENV=development
 
 ## 🔗 Links
 
-- GitHub: https://github.com/italoantonio-dev/zerith
+- GitHub: https://github.com/zerith-technologies/zerith
 - Deploy frontend: https://italoantonio-dev.github.io/zerith
+- **Backend produção: https://zerith-b4xg.onrender.com**
 - CEO: Italo Antonio — linkedin.com/in/italo-ti
