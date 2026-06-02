@@ -89,5 +89,9 @@
     "vite": "^5.4.1",
     "vitest": "^0.34.6"
   },
-  "homepage": "https://italoantonio-dev.github.io/zerith"
+  "homepage": "https://italoantonio-dev.github.io/zerith",
+  "engines": {
+    "node": ">=18",
+    "npm": ">=9"
+  }
 }
