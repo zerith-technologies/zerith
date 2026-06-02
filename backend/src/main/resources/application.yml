@@ -114,11 +114,11 @@ spring:
       name: disabled
       password: disabled
 
-# CORS — origens permitidas em prod (GitHub Pages + domínio futuro)
-# Sobrescrito pela variável ZERITH_CORS_ALLOWED_ORIGINS no Render
+# CORS — origens permitidas em prod
+# Sobrescrito pela variável ZERITH_CORS_ALLOWED_ORIGINS no servidor
 zerith:
   cors:
-    allowed-origins: ${ZERITH_CORS_ALLOWED_ORIGINS:https://italoantonio-dev.github.io}
+    allowed-origins: ${ZERITH_CORS_ALLOWED_ORIGINS:https://app.zerithfrotas.tech}
 
 logging:
   level:
