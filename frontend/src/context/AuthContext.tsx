@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Verifica sessão ativa via cookie httpOnly ao montar
   useEffect(() => {
     authService.me()
       .then(setUser)

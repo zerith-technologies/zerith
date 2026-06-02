@@ -13,15 +13,12 @@ const apiClient = axios.create({
   },
 });
 
-// 401 → redireciona para login (token expirado ou ausente)
+// Rejeita erros normalmente — o ProtectedRoute e o AuthContext tratam 401.
+// Não redirecionar aqui: causaria loop infinito durante a inicialização do AuthContext
+// (me() → 401 → redirect → recarga → me() → 401 → …).
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  },
+  (error) => Promise.reject(error),
 );
 
 export default apiClient;
