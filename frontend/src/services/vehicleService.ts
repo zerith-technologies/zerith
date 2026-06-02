@@ -1,80 +1,36 @@
-// Serviço de veículos
-// Comunicação com ZerithCore: /vehicles e /vehicles/:id/sensors
+// Serviço de veículos — endpoints /veiculos do ZerithCore
 
 import apiClient from './api';
 import type {
-  Vehicle,
-  SensorReading,
   ApiResponse,
-  PaginatedResponse,
-  VehicleQueryParams,
-  SensorQueryParams,
+  Vehicle,
+  VehicleCreateRequest,
+  VehicleUpdateRequest,
+  StatusVeiculo,
 } from '@/types';
 
-// -------------------------------------------------------
-// Listar veículos (paginado, com filtros opcionais)
-// -------------------------------------------------------
-
-export async function getVehicles(
-  params?: VehicleQueryParams,
-): Promise<PaginatedResponse<Vehicle>> {
-  const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Vehicle>>>('/vehicles', {
-    params,
+export async function getAll(status?: StatusVeiculo): Promise<Vehicle[]> {
+  const { data } = await apiClient.get<ApiResponse<Vehicle[]>>('/veiculos', {
+    params: status ? { status } : undefined,
   });
   return data.data;
 }
 
-// -------------------------------------------------------
-// Buscar veículo por ID
-// -------------------------------------------------------
-
-export async function getVehicleById(id: string): Promise<Vehicle> {
-  const { data } = await apiClient.get<ApiResponse<Vehicle>>(`/vehicles/${id}`);
+export async function getById(id: string): Promise<Vehicle> {
+  const { data } = await apiClient.get<ApiResponse<Vehicle>>(`/veiculos/${id}`);
   return data.data;
 }
 
-// -------------------------------------------------------
-// Criar novo veículo
-// -------------------------------------------------------
-
-export async function createVehicle(
-  vehicle: Omit<Vehicle, 'id'>,
-): Promise<Vehicle> {
-  const { data } = await apiClient.post<ApiResponse<Vehicle>>('/vehicles', vehicle);
+export async function create(req: VehicleCreateRequest): Promise<Vehicle> {
+  const { data } = await apiClient.post<ApiResponse<Vehicle>>('/veiculos', req);
   return data.data;
 }
 
-// -------------------------------------------------------
-// Atualizar veículo
-// -------------------------------------------------------
-
-export async function updateVehicle(
-  id: string,
-  vehicle: Partial<Vehicle>,
-): Promise<Vehicle> {
-  const { data } = await apiClient.put<ApiResponse<Vehicle>>(`/vehicles/${id}`, vehicle);
+export async function update(id: string, req: VehicleUpdateRequest): Promise<Vehicle> {
+  const { data } = await apiClient.patch<ApiResponse<Vehicle>>(`/veiculos/${id}`, req);
   return data.data;
 }
 
-// -------------------------------------------------------
-// Remover veículo
-// -------------------------------------------------------
-
-export async function deleteVehicle(id: string): Promise<void> {
-  await apiClient.delete(`/vehicles/${id}`);
-}
-
-// -------------------------------------------------------
-// Leituras de sensores de um veículo
-// -------------------------------------------------------
-
-export async function getSensorReadings(
-  vehicleId: string,
-  params?: SensorQueryParams,
-): Promise<SensorReading[]> {
-  const { data } = await apiClient.get<ApiResponse<SensorReading[]>>(
-    `/vehicles/${vehicleId}/sensors`,
-    { params },
-  );
-  return data.data;
+export async function remove(id: string): Promise<void> {
+  await apiClient.delete(`/veiculos/${id}`);
 }

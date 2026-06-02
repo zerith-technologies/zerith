@@ -1,64 +1,15 @@
-// Serviço de alertas
-// Comunicação com ZerithCore: /alerts e /alerts/:id/status
+// Serviço de alertas (frontend-only por enquanto — sem endpoint no backend)
 
-import apiClient from './api';
-import type {
-  Alert,
-  AlertStatus,
-  ApiResponse,
-  PaginatedResponse,
-  AlertQueryParams,
-} from '@/types';
+import type { Alert, AlertStatus } from '@/types';
 
-// -------------------------------------------------------
-// Listar alertas (paginado, com filtros opcionais)
-// -------------------------------------------------------
+// Tipagem para quando o endpoint existir
+export type { Alert, AlertStatus };
 
-export async function getAlerts(
-  params?: AlertQueryParams,
-): Promise<PaginatedResponse<Alert>> {
-  const { data } = await apiClient.get<ApiResponse<PaginatedResponse<Alert>>>('/alerts', {
-    params,
-  });
-  return data.data;
+// Placeholder — substituir por chamadas reais quando o backend tiver /alertas
+export function resolveAlert(_id: string): Promise<void> {
+  return Promise.resolve();
 }
 
-// -------------------------------------------------------
-// Buscar alerta por ID
-// -------------------------------------------------------
-
-export async function getAlertById(id: string): Promise<Alert> {
-  const { data } = await apiClient.get<ApiResponse<Alert>>(`/alerts/${id}`);
-  return data.data;
-}
-
-// -------------------------------------------------------
-// Atualizar status de um alerta
-// -------------------------------------------------------
-
-export async function updateAlertStatus(
-  id: string,
-  status: AlertStatus,
-): Promise<Alert> {
-  const { data } = await apiClient.patch<ApiResponse<Alert>>(
-    `/alerts/${id}/status`,
-    { status },
-  );
-  return data.data;
-}
-
-// -------------------------------------------------------
-// Atalho: resolver alerta
-// -------------------------------------------------------
-
-export async function resolveAlert(id: string): Promise<Alert> {
-  return updateAlertStatus(id, 'RESOLVED');
-}
-
-// -------------------------------------------------------
-// Atalho: agendar alerta
-// -------------------------------------------------------
-
-export async function scheduleAlert(id: string): Promise<Alert> {
-  return updateAlertStatus(id, 'SCHEDULED');
+export function scheduleAlert(_id: string): Promise<void> {
+  return Promise.resolve();
 }

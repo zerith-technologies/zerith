@@ -13,7 +13,7 @@ import { useAuth } from "@/context/AuthContext";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  password: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
+  senha: z.string().min(6, { message: "A senha deve ter pelo menos 6 caracteres" }),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
@@ -27,12 +27,12 @@ const Login = () => {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
-      password: "",
+      senha: "",
     },
   });
 
   const onSubmit = async (data: LoginValues) => {
-    const success = await login(data.email, data.password);
+    const success = await login(data.email, data.senha);
     if (success) {
       navigate("/dashboard");
     }
@@ -83,7 +83,7 @@ const Login = () => {
                 
                 <FormField
                   control={form.control}
-                  name="password"
+                  name="senha"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
@@ -115,13 +115,7 @@ const Login = () => {
                   )}
                 />
                 
-                <div className="text-sm text-muted-foreground">
-                  <p className="text-[#F5F5F5] opacity-80">Credenciais de demonstração:</p>
-                  <p className="text-[#F5F5F5] opacity-80">Email: rafael@velox.com</p>
-                  <p className="text-[#F5F5F5] opacity-80">Senha: admin123</p>
-                </div>
-                
-                <Button type="submit" className="w-full" disabled={isLoading}>
+<Button type="submit" className="w-full" disabled={isLoading}>
                   <LogIn className="mr-2 h-4 w-4" />
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
