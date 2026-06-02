@@ -1,22 +1,1033 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Zehit AI — Painel de Monitoramento Inteligente</title>
-    <meta name="description" content="Plataforma inteligente de manutenção preditiva de veículos" />
-    <meta name="author" content="Velox Motors" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Zerith</title>
+    <link rel="icon" href="favicon.ico" />
 
-    <meta property="og:title" content="Zehit AI — Painel de Monitoramento Inteligente" />
-    <meta property="og:description" content="Plataforma inteligente de manutenção preditiva de veículos" />
+    <!-- Tailwind CSS (JIT via CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
 
-  <script type="module" crossorigin src="/assets/index-DUOk20sO.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-5bGuqRX9.css">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <body>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+    <!-- Babel (JSX compiler) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .animate-spin-slow { animation: spin 4s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .animate-in { animation-duration: 0.5s; animation-fill-mode: forwards; }
+        .fade-in { animation-name: fadeIn; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .slide-in-from-bottom-2 { animation-name: slideInBottom2; }
+        @keyframes slideInBottom2 { from { opacity: 0; transform: translateY(0.5rem); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-in-from-bottom-4 { animation-name: slideInBottom4; }
+        @keyframes slideInBottom4 { from { opacity: 0; transform: translateY(1rem); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-in-from-bottom-8 { animation-name: slideInBottom8; }
+        @keyframes slideInBottom8 { from { opacity: 0; transform: translateY(2rem); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-in-from-bottom-10 { animation-name: slideInBottom10; }
+        @keyframes slideInBottom10 { from { opacity: 0; transform: translateY(2.5rem); } to { opacity: 1; transform: translateY(0); } }
+
+        .slide-in-from-top-2 { animation-name: slideInTop2; }
+        @keyframes slideInTop2 { from { opacity: 0; transform: translateY(-0.5rem); } to { opacity: 1; transform: translateY(0); } }
+
+        .zoom-in-95 { animation-name: zoomIn95; }
+        @keyframes zoomIn95 { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .fill-mode-both { animation-fill-mode: both; }
+    </style>
+</head>
+<body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-  </body>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ── API ────────────────────────────────────────────────────────────────
+        const API_BASE = 'https://api.zerithfrotas.tech/api/v1';
+
+        function apiFetch(path, options = {}) {
+          const { headers = {}, ...rest } = options;
+          return fetch(`${API_BASE}${path}`, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...headers },
+            ...rest,
+          });
+        }
+
+        // ── Icon ───────────────────────────────────────────────────────────────
+        const Icon = ({ name, size = 20, className = "" }) => (
+            <i className={`ph-light ph-${name} ${className}`} style={{ fontSize: size }}></i>
+        );
+
+        // ── LoadingScreen ──────────────────────────────────────────────────────
+        function LoadingScreen() {
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-[#0f1422] via-[#151b28] to-[#1a2235] flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-12 h-12 border-2 border-white/10 border-t-blue-500/60 rounded-full animate-spin mx-auto mb-6"></div>
+                <p className="text-white/25 text-[10px] tracking-[0.45em] uppercase select-none">Zerith</p>
+              </div>
+            </div>
+          );
+        }
+
+        // ── LoginScreen ────────────────────────────────────────────────────────
+        function LoginScreen({ onLogin }) {
+          const [email, setEmail] = useState('');
+          const [senha, setSenha] = useState('');
+          const [loading, setLoading] = useState(false);
+          const [error, setError] = useState('');
+
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+            setError('');
+            try {
+              const res = await apiFetch('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, senha }),
+              });
+              const json = await res.json();
+              if (res.ok && json.success) {
+                onLogin(json.data);
+              } else {
+                setError(json.message || 'Credenciais inválidas.');
+              }
+            } catch {
+              setError('Não foi possível conectar ao servidor.');
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          return (
+            <div className="min-h-screen bg-gradient-to-br from-[#0f1422] via-[#151b28] to-[#1a2235] flex items-center justify-center p-4">
+              <div className="w-full max-w-sm">
+                <div className="text-center mb-10">
+                  <p className="text-3xl font-light tracking-[0.35em] text-white select-none">ZERITH</p>
+                  <p className="text-white/30 text-[10px] tracking-[0.2em] mt-2 uppercase">Gestão Inteligente de Frotas</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-[2rem] p-8 space-y-5">
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm flex items-center gap-2">
+                      <Icon name="warning-circle" size={16} className="shrink-0" />
+                      {error}
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-[10px] text-white/40 uppercase tracking-wider block mb-2">E-mail</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      placeholder="seu@email.com"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/40 uppercase tracking-wider block mb-2">Senha</label>
+                    <input
+                      type="password"
+                      value={senha}
+                      onChange={e => setSenha(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      placeholder="••••••••"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 text-sm focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-12 bg-white text-[#0f1422] font-bold text-xs tracking-widest rounded-xl hover:bg-white/90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed mt-2 flex items-center justify-center gap-2"
+                  >
+                    {loading
+                      ? <><div className="w-4 h-4 border-2 border-[#0f1422]/20 border-t-[#0f1422] rounded-full animate-spin"></div>AUTENTICANDO</>
+                      : 'ENTRAR'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          );
+        }
+
+        // ── App ────────────────────────────────────────────────────────────────
+        function App() {
+          // Auth
+          const [authState, setAuthState] = useState('loading');
+          const [currentUser, setCurrentUser] = useState(null);
+          const [apiVehicles, setApiVehicles] = useState([]);
+          const [telemetryData, setTelemetryData] = useState(null);
+
+          // Navigation
+          const [currentView, setCurrentView] = useState('dashboard');
+          const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+          const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+          const [isNotifOpen, setIsNotifOpen] = useState(false);
+
+          // Dashboard
+          const [activeFilter, setActiveFilter] = useState('Todos');
+          const [selectedVehicle, setSelectedVehicle] = useState(null);
+          const [carouselIndex, setCarouselIndex] = useState(0);
+          const [driverTab, setDriverTab] = useState('em_rota');
+          const [isDarkMode, setIsDarkMode] = useState(false);
+          const [resolvedIssues, setResolvedIssues] = useState([]);
+          const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+          // ── Effects ────────────────────────────────────────────────────────
+
+          useEffect(() => {
+            apiFetch('/auth/me')
+              .then(res => res.ok ? res.json() : Promise.reject())
+              .then(json => { setCurrentUser(json.data); setAuthState('authenticated'); })
+              .catch(() => setAuthState('unauthenticated'));
+          }, []);
+
+          useEffect(() => {
+            if (authState !== 'authenticated') return;
+            apiFetch('/veiculos')
+              .then(res => res.ok ? res.json() : null)
+              .then(json => {
+                if (!json?.data?.length) return;
+                setApiVehicles(json.data);
+                const firstId = json.data[0].id;
+                apiFetch(`/veiculos/${firstId}/telemetria/ultima`)
+                  .then(r => r.ok ? r.json() : null)
+                  .then(t => { if (t?.data) setTelemetryData(t.data); })
+                  .catch(() => {});
+              })
+              .catch(() => {});
+          }, [authState]);
+
+          // ── Handlers ───────────────────────────────────────────────────────
+
+          const handleLogin = (user) => { setCurrentUser(user); setAuthState('authenticated'); };
+
+          const handleLogout = async () => {
+            try { await apiFetch('/auth/logout', { method: 'POST' }); } catch {}
+            setCurrentUser(null); setApiVehicles([]); setTelemetryData(null);
+            setAuthState('unauthenticated');
+          };
+
+          const handleResolveIssue = (id) => { setResolvedIssues(prev => [...prev, id]); };
+
+          // ── Theme ──────────────────────────────────────────────────────────
+
+          const theme = {
+            bg: isDarkMode ? 'bg-[#0f141e]' : 'bg-[#f5f7fa]',
+            textMain: isDarkMode ? 'text-gray-100' : 'text-gray-800',
+            textMuted: isDarkMode ? 'text-gray-400' : 'text-gray-500',
+            header: isDarkMode ? 'bg-[#151b28] border-b border-gray-800' : 'bg-[#1e2532]',
+            sidebar: isDarkMode ? 'bg-[#151b28] border-r border-gray-800' : 'bg-white border-r border-gray-100',
+            card: isDarkMode ? 'bg-[#1a2130] border-gray-800 shadow-none' : 'bg-white border-gray-100 shadow-sm',
+            searchBg: isDarkMode ? 'bg-[#0f141e]' : 'bg-[#f4ecec]',
+            hover: isDarkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50',
+            border: isDarkMode ? 'border-gray-800' : 'border-gray-200',
+            studioBg: isDarkMode ? 'from-gray-900 via-gray-800 to-[#1a2130]' : 'from-gray-100 via-gray-200 to-white'
+          };
+
+          const filters = ['Todos', 'Alertas IA', 'Performance', 'Sensores', 'Manutenção'];
+
+          // ── Mock fallback data ──────────────────────────────────────────────
+
+          const mockAlertVehicles = [
+            { id: 'L-204', placa: 'XYZ-9876', status: 'critical', type: 'car', driver: 'Ana Paula', title: 'Desgaste Prematuro: Pastilhas', desc: 'IA estima falha nos freios nos próximos 50km.' },
+            { id: 'L-105', placa: 'ABC-1234', status: 'warning', type: 'car', driver: 'João Marcos', title: 'Pressão de Pneus Baixa', desc: 'Pneu traseiro direito com 24 PSI. Risco de furo.' },
+            { id: 'L-1042', placa: 'QWE-5555', status: 'critical', type: 'car', driver: 'Carlos Silva', title: 'Aquecimento do Motor', desc: 'Temperatura excedeu limite seguro em subida.' }
+          ];
+
+          const mockFleetDrivers = [
+            { id: '1', name: 'Carlos Silva', status: 'em_rota', time: '14 min', placa: 'XYZ-9876', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Carlos&backgroundColor=e2e8f0', carColor: '#3b82f6', phone: '(11) 98888-7777', email: 'carlos.s@zerith.com', model: 'Tracker 2023' },
+            { id: '2', name: 'Ana Paula', status: 'em_rota', time: '5 min', placa: 'ABC-1234', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ana&backgroundColor=e2e8f0', carColor: '#ef4444', phone: '(11) 97777-6666', email: 'ana.p@zerith.com', model: 'Nivus 2024' },
+            { id: '3', name: 'João Marcos', status: 'disponivel', time: '-', placa: 'QWE-5555', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Joao&backgroundColor=e2e8f0', carColor: '#10b981', phone: '(11) 96666-5555', email: 'joao.m@zerith.com', model: 'Corolla 2022' },
+            { id: '4', name: 'Mariana Costa', status: 'disponivel', time: '-', placa: 'RTY-1122', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Mariana&backgroundColor=e2e8f0', carColor: '#f59e0b', phone: '(11) 95555-4444', email: 'mariana.c@zerith.com', model: 'Kicks 2023' },
+            { id: '5', name: 'Ricardo Dias', status: 'manutencao', time: '-', placa: 'UIO-9988', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ricardo&backgroundColor=e2e8f0', carColor: '#64748b', phone: '(11) 94444-3333', email: 'ricardo.d@zerith.com', model: 'Compass 2022' },
+            { id: '6', name: 'Fernanda Lima', status: 'disponivel', time: '-', placa: 'BNM-5544', avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=Fernanda&backgroundColor=e2e8f0', carColor: '#a855f7', phone: '(11) 93333-2222', email: 'fernanda.l@zerith.com', model: 'Creta 2024' },
+          ];
+
+          const aiPredictions = [
+            { placa: 'RTY-1122', id: 'L-301', issue: 'Falha no Alternador Prevista', prob: 88, timeframe: 'em ~2.500 km', icon: <Icon name="lightning" /> },
+            { placa: 'UIO-9988', id: 'L-302', issue: 'Vazamento de Fluido (Transmissão)', prob: 72, timeframe: 'em ~4.000 km', icon: <Icon name="pulse" /> },
+            { placa: 'BNM-5544', id: 'L-305', issue: 'Desgaste Irregular de Pneus', prob: 65, timeframe: 'em ~6.500 km', icon: <Icon name="gauge" /> },
+          ];
+
+          // ── API data mapping ────────────────────────────────────────────────
+
+          const CAR_COLORS = ['#3b82f6','#ef4444','#10b981','#f59e0b','#64748b','#a855f7','#ec4899','#06b6d4'];
+
+          const displayVehicles = apiVehicles.length > 0
+            ? apiVehicles.map(v => ({
+                id: v.apelido || v.placa,
+                placa: v.placa,
+                status: v.status === 'MANUTENCAO' ? 'warning' : v.status === 'INATIVO' ? 'critical' : 'ok',
+                type: 'car',
+                driver: `${v.marca} ${v.modelo}`,
+                title: v.status === 'MANUTENCAO' ? 'Veículo em Manutenção'
+                     : v.status === 'INATIVO'    ? 'Veículo Inativo'
+                     : 'Operando Normalmente',
+                desc: `${v.modelo} ${v.ano} · Odômetro: ${v.odometroKm.toLocaleString('pt-BR')} km`,
+              }))
+            : mockAlertVehicles;
+
+          const displayDrivers = apiVehicles.length > 0
+            ? apiVehicles.map((v, i) => ({
+                id: v.id,
+                name: v.apelido || `${v.marca} ${v.modelo}`,
+                status: v.status === 'MANUTENCAO' ? 'manutencao' : v.status === 'ATIVO' ? 'em_rota' : 'disponivel',
+                time: v.status === 'ATIVO' ? '–' : '-',
+                placa: v.placa,
+                avatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(v.placa)}&backgroundColor=e2e8f0`,
+                carColor: CAR_COLORS[i % CAR_COLORS.length],
+                phone: '–',
+                email: `${v.placa.toLowerCase()}@zerith.com`,
+                model: `${v.marca} ${v.modelo} ${v.ano}`,
+              }))
+            : mockFleetDrivers;
+
+          const safeIndex = displayVehicles.length > 0 ? carouselIndex % displayVehicles.length : 0;
+          const currentAlert = displayVehicles[safeIndex] || displayVehicles[0];
+
+          const nextCarouselItem = (e) => { e.stopPropagation(); setCarouselIndex(p => (p + 1) % displayVehicles.length); };
+          const prevCarouselItem = (e) => { e.stopPropagation(); setCarouselIndex(p => p === 0 ? displayVehicles.length - 1 : p - 1); };
+
+          const onRouteCount   = displayDrivers.filter(d => d.status === 'em_rota').length;
+          const availableCount = displayDrivers.filter(d => d.status === 'disponivel').length;
+
+          // ── Telemetry ──────────────────────────────────────────────────────
+
+          const motorTemp = telemetryData?.temperaturaMotorC;
+          const fuelLevel = telemetryData?.nivelCombustivelPct;
+          const tempStatus = motorTemp == null ? 'NORMAL'
+            : motorTemp > 110 ? 'CRÍTICO'
+            : motorTemp > 95  ? 'ATENÇÃO'
+            : 'NORMAL';
+
+          const tempBadgeClass = tempStatus === 'CRÍTICO'
+            ? 'bg-red-500/10 text-red-500'
+            : tempStatus === 'ATENÇÃO'
+            ? 'bg-yellow-500/10 text-yellow-500'
+            : 'bg-green-500/10 text-green-500';
+
+          const fuelBadgeClass = fuelLevel != null && fuelLevel < 20
+            ? 'bg-red-500/10 text-red-500'
+            : fuelLevel != null && fuelLevel < 40
+            ? 'bg-yellow-500/10 text-yellow-500'
+            : 'bg-blue-500/10 text-blue-500';
+
+          const fuelBadgeText = fuelLevel != null && fuelLevel < 20 ? 'BAIXO'
+            : fuelLevel != null && fuelLevel < 40 ? 'ATENÇÃO'
+            : 'OTIMIZADO';
+
+          // ── Conditional renders ────────────────────────────────────────────
+
+          if (authState === 'loading') return <LoadingScreen />;
+          if (authState === 'unauthenticated') return <LoginScreen onLogin={handleLogin} />;
+
+          return (
+            <div className={`min-h-screen ${theme.bg} ${theme.textMain} font-sans transition-colors duration-300 flex flex-col`}>
+
+              {/* HEADER */}
+              <header className={`sticky top-0 z-50 flex items-center justify-between px-6 py-3 ${theme.header} text-white shadow-md transition-colors duration-300`}>
+                <div className="flex items-center gap-6 min-w-[200px]">
+                  <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="hover:bg-white/10 p-2 rounded-lg transition-colors">
+                    <Icon name="list" size={24} className="w-6 h-6" />
+                  </button>
+                  <img
+                    src="NOME ZERITH.png"
+                    alt="ZERITH"
+                    className="h-6 object-contain mt-1"
+                    onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'block'; }}
+                  />
+                  <span className="hidden text-[22px] font-light tracking-[0.25em] mt-1 text-white select-none">ZERITH</span>
+                </div>
+
+                <div className="flex-1 max-w-2xl px-8 relative">
+                  <div className={`relative flex items-center ${theme.searchBg} rounded-full transition-all duration-300 ${isSearchFocused ? 'ring-2 ring-blue-400 shadow-lg' : 'shadow-inner'}`}>
+                    <Icon name="magnifying-glass" size={16} className="text-gray-500 ml-5" />
+                    <input type="text" placeholder="Buscar placa, motorista ou relatório..." onFocus={() => setIsSearchFocused(true)} onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)} className={`w-full bg-transparent ${isDarkMode ? 'text-white' : 'text-gray-700'} placeholder-gray-500 py-2.5 px-4 text-sm focus:outline-none`} />
+                    <button className="pr-5 text-gray-500 hover:text-blue-500 transition-colors" title="Filtros avançados">
+                      <Icon name="sliders-horizontal" size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 min-w-[200px] justify-end">
+                  <div className="relative">
+                    <button onClick={() => setIsNotifOpen(!isNotifOpen)} className="hover:bg-white/10 p-2 rounded-full transition-colors relative">
+                      <Icon name="bell" size={20} />
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-[#1e2532] animate-pulse"></span>
+                    </button>
+                    {isNotifOpen && (
+                      <div className={`absolute right-0 mt-3 w-80 ${theme.card} rounded-[1.5rem] shadow-xl border ${theme.border} py-2 z-50 animate-in fade-in slide-in-from-top-2`}>
+                        <div className={`px-4 py-3 border-b ${theme.border} flex justify-between items-center mb-1`}><h3 className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>Notificações</h3><span className="text-[10px] bg-red-500/10 text-red-500 px-2 py-0.5 rounded-full font-bold">Ação Exigida</span></div>
+                        <div className="max-h-80 overflow-y-auto">
+                          <button onClick={() => { setSelectedVehicle(displayVehicles[0]); setIsNotifOpen(false); setCurrentView('dashboard'); setActiveFilter('Alertas IA'); }} className={`w-full text-left flex items-start gap-3 px-4 py-3 ${theme.hover} transition-colors border-l-2 border-red-500 bg-red-500/5`}>
+                            <div className="mt-1"><span className="flex h-2 w-2 relative"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span></div>
+                            <div><p className="text-xs font-bold text-red-500 mb-0.5">Atenção Imediata: {displayVehicles[0]?.id || 'L-204'}</p><p className={`text-xs ${theme.textMuted}`}>{displayVehicles[0]?.title || 'Falha iminente detectada.'}</p><p className={`text-[10px] ${theme.textMuted} mt-1 font-medium`}>AGORA</p></div>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="w-px h-6 bg-gray-600/50 mx-1"></div>
+                  <div className="relative">
+                    <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center gap-2 hover:bg-white/10 p-1 pr-2.5 rounded-full transition-colors focus:outline-none">
+                      <div className="w-7 h-7 bg-gradient-to-tr from-gray-500 to-gray-400 rounded-full flex items-center justify-center">
+                        <i className="ph ph-user text-white" style={{fontSize: 16}}></i>
+                      </div>
+                      <Icon name="caret-down" size={14} className={`text-gray-400 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isUserMenuOpen && (
+                      <div className={`absolute right-0 mt-3 w-56 ${theme.card} rounded-2xl shadow-xl border ${theme.border} py-2 z-30`}>
+                        <div className={`px-4 py-3 border-b ${theme.border} mb-1`}>
+                          <p className={`text-sm font-medium ${theme.textMain}`}>{currentUser?.nome || 'Administrador'}</p>
+                          <p className={`text-xs ${theme.textMuted}`}>{currentUser?.email || ''}</p>
+                        </div>
+                        <button className={`w-full text-left flex items-center gap-3 px-4 py-2 ${theme.hover} transition-colors`}><Icon name="gear" size={16} className={theme.textMain} /><span className={`text-sm ${theme.textMain}`}>Configurações</span></button>
+                        <div className={`h-px ${theme.border} my-1`}></div>
+                        <button onClick={handleLogout} className={`w-full text-left flex items-center gap-3 px-4 py-2 ${isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'} transition-colors`}><Icon name="sign-out" size={16} className="text-red-500" /><span className="text-sm text-red-500">Sair</span></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </header>
+
+              {/* MAIN LAYOUT */}
+              <main className="max-w-[1500px] mx-auto w-full pt-6 px-6 flex gap-6 flex-1">
+
+                {/* SIDEBAR */}
+                <aside className={`hidden md:flex flex-col shrink-0 transition-all duration-300 ease-in-out ${isSidebarOpen ? 'w-[240px]' : 'w-[64px]'}`}>
+                  <nav className="sticky top-24 flex flex-col gap-1 flex-1">
+                    <NavItem icon={<Icon name="house" />} text="Visão Global" active={currentView === 'dashboard' && ['Todos', 'Performance', 'Sensores'].includes(activeFilter)} onClick={() => { setCurrentView('dashboard'); setActiveFilter('Todos'); }} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+                    <NavItem icon={<Icon name="car" />} text="Frota Leve" active={currentView === 'frota'} onClick={() => setCurrentView('frota')} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+                    <NavItem icon={<Icon name="pulse" />} text="Modelos Preditivos" alert active={currentView === 'dashboard' && activeFilter === 'Alertas IA'} onClick={() => { setCurrentView('dashboard'); setActiveFilter('Alertas IA'); }} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+                    <NavItem icon={<Icon name="wrench" />} text="Plano de Manutenção" active={currentView === 'dashboard' && activeFilter === 'Manutenção'} onClick={() => { setCurrentView('dashboard'); setActiveFilter('Manutenção'); }} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+                    <NavItem icon={<Icon name="currency-dollar" />} text="Gestão Financeira" active={currentView === 'financeira'} onClick={() => setCurrentView('financeira')} isOpen={isSidebarOpen} theme={theme} isDarkMode={isDarkMode} />
+                    <hr className={`my-4 ${theme.border}`} />
+                    {isSidebarOpen ? <h3 className={`px-3 text-[10px] font-bold ${theme.textMuted} uppercase mb-2 animate-in fade-in`}>Filiais</h3> : <div className={`w-6 h-px ${theme.border} mx-auto mb-2`}></div>}
+                    <NavItem text="Matriz (São Paulo)" small isOpen={isSidebarOpen} textOnly theme={theme} />
+                    <NavItem text="Operação Sul" small isOpen={isSidebarOpen} textOnly theme={theme} />
+                  </nav>
+                  <div className={`sticky bottom-6 mt-8 p-1 ${isSidebarOpen ? 'bg-transparent' : 'flex justify-center'}`}>
+                    <button onClick={() => setIsDarkMode(!isDarkMode)} title="Alternar Tema" className={`flex items-center ${isSidebarOpen ? 'justify-between w-full px-4 py-3' : 'justify-center p-3'} rounded-xl ${isDarkMode ? 'bg-[#1e2532] text-blue-400' : 'bg-white shadow-sm border border-gray-100 text-gray-700'} hover:opacity-80 transition-all`}>
+                      <div className="flex items-center gap-3">{isDarkMode ? <Icon name="moon" size={20} /> : <Icon name="sun" size={20} />}{isSidebarOpen && <span className="font-medium text-sm">Modo {isDarkMode ? 'Escuro' : 'Claro'}</span>}</div>
+                    </button>
+                  </div>
+                </aside>
+
+                {/* VISÃO 1: DASHBOARD */}
+                {currentView === 'dashboard' && (
+                  <>
+                    <section className={`flex-1 flex flex-col gap-5 transition-all duration-300 ${isSidebarOpen ? 'max-w-[700px]' : 'max-w-[850px] mx-auto'}`}>
+
+                      <div className={`${theme.card} rounded-[1.5rem] border p-5 transition-colors duration-300`}>
+                        <h2 className={`text-xs font-bold ${theme.textMuted} uppercase mb-4 tracking-wider`}>Saúde da Frota Leve</h2>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className={`${isDarkMode ? 'bg-[#151b28] border-gray-800' : 'bg-[#f8fafc] border-gray-100'} rounded-xl p-4 border`}><p className={`text-xs ${theme.textMuted} font-medium`}>Disponibilidade</p><p className="text-2xl font-light text-green-500 mt-1">96.8%</p></div>
+                          <div className={`${isDarkMode ? 'bg-[#151b28] border-gray-800' : 'bg-[#f8fafc] border-gray-100'} rounded-xl p-4 border`}><p className={`text-xs ${theme.textMuted} font-medium`}>Manutenções Pendentes</p><p className="text-2xl font-light text-yellow-500 mt-1">8</p></div>
+                          <div className={`${isDarkMode ? 'bg-[#151b28] border-gray-800' : 'bg-[#f8fafc] border-gray-100'} rounded-xl p-4 border`}><p className={`text-xs ${theme.textMuted} font-medium`}>Custo Estimado (Mês)</p><p className={`text-2xl font-light ${theme.textMain} mt-1`}>R$ 15k</p></div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide">
+                        <Icon name="funnel" size={16} className={`${theme.textMuted} mr-2 shrink-0`} />
+                        {filters.map(filter => (
+                          <button key={filter} onClick={() => setActiveFilter(filter)} className={`whitespace-nowrap px-5 py-2 rounded-full text-sm transition-all duration-200 ${activeFilter === filter ? 'bg-[#1a2235] text-white shadow-md font-medium' : `${isDarkMode ? 'bg-[#1e2532] text-gray-300 border-gray-700 hover:border-blue-500 hover:text-blue-400' : 'bg-white text-gray-500 border border-gray-200 hover:border-blue-400 hover:text-blue-500'}`}`}>
+                            {filter}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* ABA: TODOS & ALERTAS IA */}
+                      {['Todos', 'Alertas IA'].includes(activeFilter) && (
+                        <>
+                          <div className={`${theme.card} rounded-[2rem] border overflow-hidden relative flex flex-col h-[580px] animate-in fade-in slide-in-from-bottom-4 duration-500 cursor-pointer shadow-sm`} onClick={() => setSelectedVehicle(currentAlert)}>
+                            <div className={`absolute top-0 left-0 w-full h-[60%] bg-gradient-to-b ${theme.studioBg} flex items-center justify-center overflow-hidden perspective-1000`}>
+                              <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 ${isDarkMode ? 'bg-blue-500/5' : 'bg-white/60'} rounded-full blur-[60px]`}></div>
+                              <button onClick={prevCarouselItem} className={`absolute left-4 z-40 p-2 ${isDarkMode ? 'bg-gray-800/50 text-white' : 'bg-white/60 text-gray-800'} hover:bg-white/80 rounded-full backdrop-blur-sm shadow-sm transition-all hover:scale-110`}>
+                                <Icon name="caret-left" size={24} />
+                              </button>
+
+                              <div className="relative w-full h-full flex items-center justify-center">
+                                {displayVehicles.map((vehicle, index) => {
+                                  let diff = index - safeIndex;
+                                  const total = displayVehicles.length;
+                                  if (diff > Math.floor(total / 2)) diff -= total;
+                                  if (diff < -Math.floor(total / 2)) diff += total;
+
+                                  let transformStyle = '';
+                                  let opacity = 0; let zIndex = 10; let blur = 'blur(0px)';
+
+                                  if (diff === 0) { transformStyle = 'translate(-50%, -60%) scale(1)'; opacity = 1; zIndex = 30; }
+                                  else if (diff === 1 || (diff < 0 && total === 2)) { transformStyle = 'translate(10%, -65%) scale(0.65)'; opacity = isDarkMode ? 0.2 : 0.4; zIndex = 20; blur = 'blur(3px)'; }
+                                  else if (diff === -1) { transformStyle = 'translate(-110%, -65%) scale(0.65)'; opacity = isDarkMode ? 0.2 : 0.4; zIndex = 20; blur = 'blur(3px)'; }
+
+                                  return (
+                                    <div key={vehicle.id || index} className="absolute top-1/2 left-1/2 w-[85%] max-w-[300px] transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" style={{ transform: transformStyle, opacity, zIndex, filter: blur }} onClick={(e) => { if (diff !== 0) { e.stopPropagation(); setCarouselIndex(index); } }}>
+                                      <VehicleBlueprint status={vehicle.status} isDarkMode={isDarkMode} />
+                                    </div>
+                                  );
+                                })}
+                              </div>
+
+                              <button onClick={nextCarouselItem} className={`absolute right-4 z-40 p-2 ${isDarkMode ? 'bg-gray-800/50 text-white' : 'bg-white/60 text-gray-800'} hover:bg-white/80 rounded-full backdrop-blur-sm shadow-sm transition-all hover:scale-110`}>
+                                <Icon name="caret-right" size={24} />
+                              </button>
+                              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-40">{displayVehicles.map((_, idx) => (<div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === safeIndex ? `w-6 ${isDarkMode ? 'bg-white' : 'bg-gray-800'}` : `w-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-400/50'}`}`}></div>))}</div>
+                            </div>
+
+                            <div className="px-6 py-5 flex justify-between items-start z-20 relative">
+                              <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-2 shadow-lg ${currentAlert && currentAlert.status === 'critical' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'}`}>
+                                <span className="flex h-1.5 w-1.5 relative"><span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${currentAlert && currentAlert.status === 'critical' ? 'bg-red-500' : 'bg-yellow-500'}`}></span><span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${currentAlert && currentAlert.status === 'critical' ? 'bg-red-500' : 'bg-yellow-500'}`}></span></span>
+                                {currentAlert && currentAlert.status === 'critical' ? 'AÇÃO NECESSÁRIA' : currentAlert && currentAlert.status === 'warning' ? 'VERIFICAÇÃO SUGERIDA' : 'OPERAÇÃO NORMAL'}
+                              </div>
+                            </div>
+                            <div className="flex-1"></div>
+                            {currentAlert && (
+                              <div key={`info-${currentAlert.id}`} className={`relative z-20 ${theme.card} rounded-t-[2.5rem] pt-6 px-8 pb-6 flex flex-col items-center animate-in slide-in-from-bottom-2 fade-in duration-300 shadow-[0_-15px_40px_rgba(0,0,0,0.05)]`}>
+                                <div className={`w-12 h-1 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full absolute top-4 left-1/2 -translate-x-1/2`}></div>
+                                <div className="text-center mb-5 w-full mt-2">
+                                  <h3 className={`font-light ${theme.textMain} text-3xl tracking-tight mb-1`}>{currentAlert.id}</h3>
+                                  <p className={`text-xs ${theme.textMuted} font-medium mb-4`}>Placa: {currentAlert.placa} · {currentAlert.driver}</p>
+                                  <div className={`border rounded-2xl p-4 text-left flex gap-4 items-center transition-colors ${currentAlert.status === 'critical' ? (isDarkMode ? 'bg-red-950/20 border-red-900/30' : 'bg-red-50 border-red-100') : currentAlert.status === 'warning' ? (isDarkMode ? 'bg-yellow-950/20 border-yellow-900/30' : 'bg-yellow-50 border-yellow-100') : (isDarkMode ? 'bg-green-950/20 border-green-900/30' : 'bg-green-50 border-green-100')}`}>
+                                    <div className={`p-3 rounded-full ${currentAlert.status === 'critical' ? 'bg-red-100/10 text-red-500' : currentAlert.status === 'warning' ? 'bg-yellow-100/10 text-yellow-500' : 'bg-green-100/10 text-green-500'}`}>
+                                      <Icon name={currentAlert.status === 'ok' ? 'check-circle' : 'wrench'} size={24} />
+                                    </div>
+                                    <div>
+                                      <p className={`font-medium text-sm ${currentAlert.status === 'critical' ? 'text-red-500' : currentAlert.status === 'warning' ? 'text-yellow-500' : 'text-green-500'}`}>{currentAlert.title}</p>
+                                      <p className={`text-xs mt-1 ${theme.textMuted}`}>{currentAlert.desc}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                                <button className={`w-full max-w-[320px] h-12 rounded-full font-medium text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-[#1e2532] text-white hover:bg-black'}`}>
+                                  <Icon name="pulse" size={16} /> INICIAR DIAGNÓSTICO
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* PREVISÕES DA IA */}
+                          {activeFilter === 'Alertas IA' && (
+                            <div className={`${theme.card} rounded-[2rem] border p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-8 duration-500 shadow-sm mt-2`}>
+                              <div className="flex items-center gap-4 mb-6">
+                                <div className={`p-3 rounded-full ${isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600'}`}><Icon name="brain" size={24} /></div>
+                                <div><h3 className={`font-medium text-lg ${theme.textMain}`}>Análise Preditiva a Longo Prazo</h3><p className={`text-xs ${theme.textMuted} mt-0.5`}>Padrões de anomalia identificados pela Inteligência Artificial</p></div>
+                              </div>
+                              <div className="space-y-4">
+                                {aiPredictions.map((pred, i) => (
+                                  <div key={i} className={`flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border transition-all ${isDarkMode ? 'border-gray-800 bg-[#151b28]' : 'border-gray-100 bg-gray-50'}`}>
+                                    <div className="flex items-center gap-4 mb-4 md:mb-0 w-full md:w-1/2">
+                                      <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-white shadow-sm text-gray-500'}`}>{React.cloneElement(pred.icon, { size: 18 })}</div>
+                                      <div><p className={`text-sm font-bold ${theme.textMain}`}>{pred.issue}</p><p className={`text-xs mt-0.5 ${theme.textMuted}`}>Veículo: {pred.id} ({pred.placa})</p></div>
+                                    </div>
+                                    <div className="w-full md:w-1/3 space-y-1.5 px-2">
+                                      <div className="flex justify-between text-[11px] font-bold"><span className={isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}>{pred.prob}% de Risco</span><span className={theme.textMuted}>{pred.timeframe}</span></div>
+                                      <div className={`h-2 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'} rounded-full overflow-hidden`}><div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pred.prob}%` }}></div></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* ABA: PERFORMANCE */}
+                      {['Todos', 'Performance'].includes(activeFilter) && (
+                        <div className={`${theme.card} rounded-[2rem] border p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-8 duration-500 shadow-sm`}>
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+                            <div className="flex items-center gap-4">
+                              <div className={`p-3 rounded-full ${isDarkMode ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-50 text-blue-600'}`}><Icon name="trend-up" size={24} /></div>
+                              <div><h3 className={`font-medium text-lg ${theme.textMain}`}>Eficiência Global da Frota</h3><p className={`text-xs ${theme.textMuted} mt-0.5`}>IA Preditiva · Atualizado há 2 min</p></div>
+                            </div>
+                            <div className="text-right"><div className={`text-3xl font-light ${theme.textMain}`}>94.2<span className={`text-base ${theme.textMuted}`}>/100</span></div><p className="text-[10px] text-green-500 font-bold tracking-wider mt-1">+2.4% DESTA SEMANA</p></div>
+                          </div>
+                          <div className="space-y-6">
+                            <div className="space-y-2"><div className="flex justify-between items-end text-xs"><span className={`font-medium ${theme.textMuted}`}>Economia de Combustível/Energia</span><span className={`font-bold ${theme.textMain}`}>98%</span></div><div className={`h-2.5 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-full overflow-hidden`}><div className="h-full bg-blue-500 rounded-full transition-all duration-1000" style={{ width: '98%' }}></div></div></div>
+                            <div className="space-y-2"><div className="flex justify-between items-end text-xs"><span className={`font-medium ${theme.textMuted}`}>Score de Condução (Média dos Motoristas)</span><span className={`font-bold ${theme.textMain}`}>85%</span></div><div className={`h-2.5 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-full overflow-hidden`}><div className="h-full bg-green-500 rounded-full transition-all duration-1000" style={{ width: '85%' }}></div></div></div>
+                            <div className="space-y-2"><div className="flex justify-between items-end text-xs"><span className={`font-medium ${theme.textMuted}`}>Desgaste de Pneus e Freios (Uso Severo)</span><span className="font-bold text-yellow-500">62%</span></div><div className={`h-2.5 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-full overflow-hidden`}><div className="h-full bg-yellow-500 rounded-full transition-all duration-1000" style={{ width: '62%' }}></div></div></div>
+                          </div>
+                          {activeFilter === 'Performance' && (
+                            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800">
+                              <h4 className={`text-xs font-bold uppercase tracking-wider ${theme.textMuted} mb-4`}>Top Motoristas (Performance)</h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {[{ name: 'João Marcos', score: '99', badge: 'bg-green-500/10 text-green-500' },{ name: 'Carlos Silva', score: '96', badge: 'bg-blue-500/10 text-blue-500' },{ name: 'Ana Paula', score: '91', badge: 'bg-yellow-500/10 text-yellow-500' }].map((d, i) => (
+                                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${isDarkMode ? 'border-gray-800 bg-[#151b28]' : 'border-gray-100 bg-gray-50'}`}>
+                                    <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center font-bold text-xs">{i+1}º</div><span className={`text-sm font-medium ${theme.textMain}`}>{d.name}</span></div>
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${d.badge}`}>{d.score} pts</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ABA: SENSORES */}
+                      {['Todos', 'Sensores'].includes(activeFilter) && (
+                        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100 fill-mode-both">
+                          {/* Sensor 1: Pressão */}
+                          <div className={`${theme.card} rounded-[1.5rem] border p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-yellow-500/50 transition-colors`}>
+                            <div className="flex justify-between items-start relative z-10">
+                              <Icon name="gauge" size={22} className={isDarkMode ? 'text-yellow-400' : 'text-yellow-500'} />
+                              <span className="text-[9px] font-bold tracking-widest bg-yellow-500/10 text-yellow-500 px-2.5 py-1 rounded-full flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div> ALERTA</span>
+                            </div>
+                            <div className="relative z-10 mt-2">
+                              <p className={`text-3xl font-light ${theme.textMain} tracking-tight`}>24 <span className={`text-sm font-medium ${theme.textMuted}`}>PSI</span></p>
+                              <p className={`text-[11px] uppercase tracking-wider font-bold mt-1 ${isDarkMode ? 'text-yellow-500/70' : 'text-yellow-600'}`}>Pressão Abaixo do Normal</p>
+                            </div>
+                            <div className="mt-2 h-10 w-full opacity-60"><svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none"><path d="M0 10 L20 12 L40 8 L60 15 L80 25 L100 28" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+                            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-yellow-500/5 rounded-full blur-xl group-hover:bg-yellow-500/10 transition-colors"></div>
+                          </div>
+
+                          {/* Sensor 2: Temperatura (dados reais) */}
+                          <div className={`${theme.card} rounded-[1.5rem] border p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-green-500/50 transition-colors`}>
+                            <div className="flex justify-between items-start relative z-10">
+                              <Icon name="thermometer" size={22} className={isDarkMode ? 'text-green-400' : 'text-green-500'} />
+                              <span className={`text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-full ${tempBadgeClass}`}>{tempStatus}</span>
+                            </div>
+                            <div className="relative z-10 mt-2">
+                              <p className={`text-3xl font-light ${theme.textMain} tracking-tight`}>{motorTemp != null ? Math.round(motorTemp) : 90} <span className={`text-sm font-medium ${theme.textMuted}`}>°C</span></p>
+                              <p className={`text-[11px] uppercase tracking-wider font-bold mt-1 ${theme.textMuted}`}>{telemetryData?.veiculo?.placa ? `Motor — ${telemetryData.veiculo.placa}` : 'Temp. Média Motores'}</p>
+                            </div>
+                            <div className="mt-2 h-10 w-full opacity-60"><svg viewBox="0 0 100 30" className="w-full h-full" preserveAspectRatio="none"><path d="M0 20 L20 18 L40 22 L60 19 L80 21 L100 20" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg></div>
+                          </div>
+
+                          {/* Sensor 3: Combustível / Bateria (dados reais) */}
+                          <div className={`${theme.card} rounded-[1.5rem] border p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-blue-500/50 transition-colors`}>
+                            <div className="flex justify-between items-start relative z-10">
+                              <Icon name="battery-warning" size={22} className={isDarkMode ? 'text-blue-400' : 'text-blue-500'} />
+                              <span className={`text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-full ${fuelBadgeClass}`}>{fuelBadgeText}</span>
+                            </div>
+                            <div className="relative z-10 mt-2">
+                              <p className={`text-3xl font-light ${theme.textMain} tracking-tight`}>{fuelLevel != null ? Math.round(fuelLevel) : 96} <span className={`text-sm font-medium ${theme.textMuted}`}>%</span></p>
+                              <p className={`text-[11px] uppercase tracking-wider font-bold mt-1 ${theme.textMuted}`}>{fuelLevel != null ? 'Nível de Combustível' : 'Saúde Média Baterias (EV)'}</p>
+                            </div>
+                          </div>
+
+                          {/* Sensor 4: Desgaste */}
+                          <div className={`${theme.card} rounded-[1.5rem] border p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden group hover:border-red-500/50 transition-colors`}>
+                            <div className="flex justify-between items-start relative z-10">
+                              <Icon name="warning" size={22} className={isDarkMode ? 'text-red-400' : 'text-red-500'} />
+                              <span className="text-[9px] font-bold tracking-widest bg-red-500/10 text-red-500 px-2.5 py-1 rounded-full flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></div> CRÍTICO</span>
+                            </div>
+                            <div className="relative z-10 mt-2">
+                              <p className={`text-3xl font-light ${theme.textMain} tracking-tight`}>15 <span className={`text-sm font-medium ${theme.textMuted}`}>mm</span></p>
+                              <p className={`text-[11px] uppercase tracking-wider font-bold mt-1 ${isDarkMode ? 'text-red-500/70' : 'text-red-600'}`}>Espessura Pastilhas Freio</p>
+                            </div>
+                            <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-red-500/5 rounded-full blur-xl group-hover:bg-red-500/10 transition-colors"></div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* ABA: MANUTENÇÃO */}
+                      {['Todos', 'Manutenção'].includes(activeFilter) && (
+                        <div className={`${theme.card} rounded-[2rem] border p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-200 fill-mode-both shadow-sm`}>
+                          <div className="flex items-center gap-4 mb-6">
+                            <div className={`p-3 rounded-full ${isDarkMode ? 'bg-gray-800 text-gray-300' : 'bg-gray-100 text-gray-600'}`}><Icon name="calendar" size={24} /></div>
+                            <div><h3 className={`font-medium text-lg ${theme.textMain}`}>Cronograma de Intervenções</h3><p className={`text-xs ${theme.textMuted} mt-0.5`}>Aprovação de orçamentos e pendências</p></div>
+                          </div>
+                          <div className="space-y-3">
+                            <div className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all ${resolvedIssues.includes('item1') ? (isDarkMode ? 'border-green-900/30 bg-green-950/10' : 'border-green-100 bg-green-50') : (isDarkMode ? 'border-red-900/30 bg-red-950/10' : 'border-red-100 bg-red-50/50')}`}>
+                              <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                                <div className={`p-3 rounded-xl ${resolvedIssues.includes('item1') ? 'bg-green-100 text-green-600' : (isDarkMode ? 'bg-red-500/20 text-red-500' : 'bg-red-100 text-red-600')}`}>{resolvedIssues.includes('item1') ? <Icon name="check-circle" size={20} /> : <Icon name="pen-nib" size={20} />}</div>
+                                <div>
+                                  <p className={`text-sm font-bold ${resolvedIssues.includes('item1') ? 'text-green-600' : (isDarkMode ? 'text-red-400' : 'text-red-600')}`}>{resolvedIssues.includes('item1') ? 'Agendado c/ Sucesso' : 'Troca de Pastilhas Traseiras'}</p>
+                                  <p className={`text-xs mt-0.5 font-medium ${resolvedIssues.includes('item1') ? 'text-green-600/70' : (isDarkMode ? 'text-red-500/70' : 'text-red-500')}`}>Veículo: {displayVehicles[0]?.id || 'L-204'} · Atrasado 120km</p>
+                                </div>
+                              </div>
+                              {!resolvedIssues.includes('item1') && (<button onClick={() => handleResolveIssue('item1')} className="text-[10px] uppercase font-bold tracking-wider text-white px-5 py-2.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors shadow-sm shadow-red-500/20">AGENDAR AGORA</button>)}
+                            </div>
+
+                            <div className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl border transition-all ${resolvedIssues.includes('item2') ? (isDarkMode ? 'border-green-900/30 bg-green-950/10' : 'border-green-100 bg-green-50') : (isDarkMode ? 'border-gray-800 bg-[#1e2532]/50' : 'border-gray-100 bg-gray-50/50')}`}>
+                              <div className="flex items-center gap-4 mb-4 sm:mb-0">
+                                <div className={`p-3 rounded-xl ${resolvedIssues.includes('item2') ? 'bg-green-100 text-green-600' : (isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-white shadow-sm text-gray-500')}`}>{resolvedIssues.includes('item2') ? <Icon name="check-circle" size={20} /> : <Icon name="wrench" size={20} />}</div>
+                                <div>
+                                  <p className={`text-sm font-bold ${resolvedIssues.includes('item2') ? 'text-green-600' : theme.textMain}`}>{resolvedIssues.includes('item2') ? 'Orçamento Aprovado' : 'Revisão 10.000km'}</p>
+                                  <p className={`text-xs mt-0.5 font-medium ${theme.textMuted}`}>Veículo: V-1042 · Orçamento: R$ 1.250</p>
+                                </div>
+                              </div>
+                              {!resolvedIssues.includes('item2') && (<button onClick={() => handleResolveIssue('item2')} className={`text-[10px] uppercase font-bold tracking-wider px-5 py-2.5 rounded-full border transition-colors ${isDarkMode ? 'border-gray-700 text-gray-300 hover:bg-blue-600 hover:border-blue-600 hover:text-white' : 'border-gray-200 text-gray-600 hover:bg-blue-500 hover:text-white hover:border-blue-500'}`}>APROVAR ORÇAMENTO</button>)}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  </>
+                )}
+
+                {/* VISÃO 2: FROTA LEVE */}
+                {currentView === 'frota' && (
+                  <section className="flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                      <div><h2 className={`text-2xl font-light tracking-tight ${theme.textMain}`}>Gestão de Frota Leve</h2><p className={`text-sm ${theme.textMuted} mt-1`}>Controle completo de motoristas e veículos designados.</p></div>
+                      <div className={`flex items-center gap-2 ${theme.card} rounded-full p-1 border shadow-sm`}>
+                        <div className="relative flex items-center bg-transparent rounded-full"><Icon name="magnifying-glass" size={16} className="text-gray-500 ml-3" /><input type="text" placeholder="Procurar motorista..." className={`bg-transparent ${isDarkMode ? 'text-white' : 'text-gray-700'} placeholder-gray-500 py-2 px-3 text-sm focus:outline-none w-48`} /></div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                      {displayDrivers.map((driver) => (
+                        <div key={driver.id} className={`${theme.card} border rounded-[1.5rem] p-5 hover:border-blue-500/50 transition-all duration-300 shadow-sm relative overflow-hidden group`}>
+                          <div className="absolute top-0 left-0 w-full h-1" style={{ backgroundColor: driver.carColor }}></div>
+                          <div className="flex justify-end mb-2">
+                            <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${driver.status === 'em_rota' ? 'bg-blue-500/10 text-blue-500' : driver.status === 'manutencao' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}`}>
+                              {driver.status === 'em_rota' ? 'Em Rota' : driver.status === 'manutencao' ? 'Em Manutenção' : 'Disponível'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mb-5">
+                            <img src={driver.avatar} alt={driver.name} className={`w-14 h-14 rounded-full border-2 ${isDarkMode ? 'border-gray-700 bg-gray-800' : 'border-gray-100 bg-gray-50'}`} />
+                            <div>
+                              <h3 className={`text-base font-bold ${theme.textMain}`}>{driver.name}</h3>
+                              <div className={`flex items-center gap-1.5 text-xs ${theme.textMuted} mt-1`}><Icon name="phone" size={12} /> {driver.phone}</div>
+                              <div className={`flex items-center gap-1.5 text-xs ${theme.textMuted} mt-0.5`}><Icon name="envelope-simple" size={12} /> {driver.email}</div>
+                            </div>
+                          </div>
+                          <div className={`h-px w-full ${theme.border} mb-4`}></div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}><Icon name="car" size={18} className={theme.textMuted} /></div>
+                              <div><p className={`text-sm font-bold ${theme.textMain}`}>{driver.model}</p><p className={`text-[10px] font-black uppercase tracking-wider ${theme.textMuted} mt-0.5`}>{driver.placa}</p></div>
+                            </div>
+                            <button className={`p-2 rounded-full ${theme.hover} transition-colors`}><Icon name="dots-three-vertical" size={16} className={theme.textMuted} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {/* VISÃO 3: FINANCEIRA */}
+                {currentView === 'financeira' && (
+                  <section className="flex-1 w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                      <div><h2 className={`text-2xl font-light tracking-tight ${theme.textMain}`}>Gestão Financeira</h2><p className={`text-sm ${theme.textMuted} mt-1`}>Análise de custos, despesas e ROI da frota.</p></div>
+                      <button className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all ${isDarkMode ? 'bg-[#1e2532] text-white hover:bg-gray-800' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 shadow-sm'}`}><Icon name="clock" size={16}/> Últimos 30 Dias <Icon name="caret-down" size={14}/></button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+                      {[{ label: 'Custo Total (Mês)', val: 'R$ 42.5K', sub: '+5.2% VS MÊS ANT.', subColor: 'text-red-500', icon: 'trend-up' },{ label: 'Economia Gerada (IA)', val: 'R$ 5.230', valColor: 'text-green-500', sub: 'OTIMIZAÇÃO DE ROTAS', subColor: 'text-green-500', icon: 'pulse' },{ label: 'Manutenção Preditiva', val: 'R$ 12.8K', sub: '14 ORDENS DE SERVIÇO', subColor: 'text-blue-500', icon: 'wrench' },{ label: 'Combustível / Carga', val: 'R$ 18.4K', sub: '-2.1% EFICIÊNCIA EV', subColor: 'text-green-500', icon: 'lightning' }].map((kpi, i) => (
+                        <div key={i} className={`${theme.card} border rounded-[1.5rem] p-5 shadow-sm`}>
+                          <p className={`text-xs ${theme.textMuted} font-bold uppercase tracking-wider`}>{kpi.label}</p>
+                          <p className={`text-3xl font-light mt-2 ${kpi.valColor || theme.textMain}`}>{kpi.val}</p>
+                          <p className={`text-[10px] font-bold tracking-wider mt-2 flex items-center gap-1 ${kpi.subColor}`}><Icon name={kpi.icon} size={12}/> {kpi.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                      <div className={`xl:col-span-2 ${theme.card} border rounded-[2rem] p-6 shadow-sm`}>
+                        <h3 className={`font-medium text-lg ${theme.textMain} mb-6`}>Histórico de Custos (6 Meses)</h3>
+                        <div className="h-64 w-full flex items-end gap-4 px-2">
+                          {[{ month: 'Jan', val: 60, cost: 'R$ 38k' },{ month: 'Fev', val: 75, cost: 'R$ 45k' },{ month: 'Mar', val: 50, cost: 'R$ 32k' },{ month: 'Abr', val: 85, cost: 'R$ 50k' },{ month: 'Mai', val: 65, cost: 'R$ 40k' },{ month: 'Jun', val: 70, cost: 'R$ 42.5k', active: true }].map((bar, i) => (
+                            <div key={i} className="flex-1 flex flex-col justify-end items-center gap-2 group cursor-pointer">
+                              <span className={`text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity ${bar.active ? 'text-blue-500 opacity-100' : theme.textMuted}`}>{bar.cost}</span>
+                              <div className={`w-full max-w-[4rem] rounded-t-xl transition-all duration-500 ${bar.active ? 'bg-blue-500' : (isDarkMode ? 'bg-gray-800 group-hover:bg-gray-700' : 'bg-gray-200 group-hover:bg-gray-300')}`} style={{ height: `${bar.val}%` }}></div>
+                              <span className={`text-xs font-medium mt-2 ${bar.active ? 'text-blue-500' : theme.textMuted}`}>{bar.month}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className={`${theme.card} border rounded-[2rem] p-6 shadow-sm flex flex-col`}>
+                        <div className="flex justify-between items-center mb-6"><h3 className={`font-medium text-lg ${theme.textMain}`}>Transações Recentes</h3><button className="text-xs font-bold text-blue-500 hover:text-blue-600">VER TODAS</button></div>
+                        <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                          {[{ title: 'Abastecimento L-105', desc: 'Posto Ipiranga', val: '- R$ 240,00', type: 'fuel', date: 'Hoje, 14:30' },{ title: 'Revisão V-1042', desc: 'Oficina Autorizada', val: '- R$ 1.250,00', type: 'maintenance', date: 'Ontem, 09:15' },{ title: 'Recarga EV L-301', desc: 'Eletroposto Matriz', val: '- R$ 45,00', type: 'energy', date: '12 Maio, 18:00' },{ title: 'Seguro Frota Leve', desc: 'Apólice Mensal', val: '- R$ 8.400,00', type: 'fixed', date: '10 Maio, 10:00' },{ title: 'Estacionamento', desc: 'Aeroporto CGH', val: '- R$ 85,00', type: 'other', date: '08 Maio, 20:45' }].map((t, i) => (
+                            <div key={i} className="flex justify-between items-center group">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
+                                  {t.type === 'fuel' ? <Icon name="gauge" size={16} className="text-yellow-500"/> : t.type === 'maintenance' ? <Icon name="wrench" size={16} className="text-red-500"/> : t.type === 'energy' ? <Icon name="lightning" size={16} className="text-blue-500"/> : <Icon name="currency-dollar" size={16} className="text-green-500"/>}
+                                </div>
+                                <div><p className={`text-sm font-bold ${theme.textMain}`}>{t.title}</p><p className={`text-[10px] ${theme.textMuted}`}>{t.desc} · {t.date}</p></div>
+                              </div>
+                              <span className={`text-sm font-bold ${theme.textMain}`}>{t.val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* DIRETÓRIO RÁPIDO */}
+                {currentView === 'dashboard' && (
+                  <aside className="hidden lg:block w-[300px] shrink-0">
+                    <div className="sticky top-24 flex flex-col gap-4 h-[calc(100vh-8rem)]">
+                      <div className="flex items-center justify-between px-2"><h3 className={`text-[10px] font-bold ${theme.textMuted} uppercase tracking-wider`}>Diretório Rápido</h3></div>
+                      <div className={`flex ${theme.card} rounded-full p-1 border shadow-sm shrink-0`}>
+                        <button onClick={() => setDriverTab('em_rota')} className={`flex-1 text-xs font-bold py-2 rounded-full transition-all ${driverTab === 'em_rota' ? (isDarkMode ? 'bg-[#1e2532] text-white shadow-md' : 'bg-white text-gray-900 shadow-md') : 'text-gray-400 hover:text-gray-500'}`}>EM ROTA ({onRouteCount})</button>
+                        <button onClick={() => setDriverTab('disponivel')} className={`flex-1 text-xs font-bold py-2 rounded-full transition-all ${driverTab === 'disponivel' ? (isDarkMode ? 'bg-[#1e2532] text-white shadow-md' : 'bg-white text-gray-900 shadow-md') : 'text-gray-400 hover:text-gray-500'}`}>DISPONÍVEL ({availableCount})</button>
+                      </div>
+                      <div className="flex-1 overflow-y-auto scrollbar-hide flex flex-col gap-3 pb-4 pr-1">
+                        {displayDrivers.filter(d => d.status === driverTab).map(driver => (<DriverUberCard key={driver.id} driver={driver} theme={theme} isDarkMode={isDarkMode} />))}
+                      </div>
+                    </div>
+                  </aside>
+                )}
+
+              </main>
+
+              {selectedVehicle && (
+                <VehicleModal vehicle={selectedVehicle} onClose={() => setSelectedVehicle(null)} theme={theme} isDarkMode={isDarkMode} />
+              )}
+            </div>
+          );
+        }
+
+        // ── NavItem ────────────────────────────────────────────────────────────
+        const NavItem = ({ icon, text, active, alert, small, isOpen, textOnly, theme, isDarkMode, onClick }) => {
+          if (textOnly && !isOpen) return null;
+          return (
+            <div onClick={onClick} title={!isOpen ? text : ""} className={`relative flex items-center ${isOpen ? 'justify-start px-4' : 'justify-center px-0'} py-3 rounded-xl cursor-pointer transition-all duration-200 overflow-hidden ${active ? (isDarkMode ? 'bg-[#1e2532] text-white' : 'bg-[#e9ecef] text-gray-900') : `${theme.hover} ${theme.textMuted}`}`}>
+              <div className="flex items-center gap-3.5">
+                {icon && <span className={`shrink-0 ${active ? (isDarkMode ? 'text-white' : 'text-gray-900') : theme.textMuted}`}>{React.cloneElement(icon, { size: small ? 18 : 20 })}</span>}
+                {!icon && small && isOpen && <div className={`w-1.5 h-1.5 rounded-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-300'} ml-2 shrink-0`}></div>}
+                <span className={`whitespace-nowrap transition-all duration-300 ${isOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 hidden'} ${small ? 'text-xs' : 'text-sm'} ${active ? 'font-medium' : ''}`}>{text}</span>
+              </div>
+              {alert && <div className={`h-1.5 w-1.5 bg-red-500 rounded-full ${isOpen ? 'ml-auto' : 'absolute top-2 right-2'}`}></div>}
+            </div>
+          );
+        };
+
+        // ── DriverUberCard ─────────────────────────────────────────────────────
+        const DriverUberCard = ({ driver, theme, isDarkMode }) => {
+          const isOnline = driver.status === 'em_rota';
+          return (
+            <div className={`p-4 ${theme.card} rounded-[1.5rem] border flex items-center justify-between group cursor-pointer hover:border-blue-500/50 transition-all duration-300 shadow-sm relative overflow-hidden`}>
+              {isOnline && <div className="absolute -right-10 -top-10 w-24 h-24 rounded-full blur-2xl opacity-10" style={{ backgroundColor: driver.carColor }}></div>}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="relative">
+                  <img src={driver.avatar} className={`w-11 h-11 rounded-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} object-cover border-2 ${isDarkMode ? 'border-[#1a2130]' : 'border-white'} shadow-sm`} alt={driver.name} />
+                  <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 ${isDarkMode ? 'border-[#1a2130]' : 'border-white'} ${isOnline ? 'bg-green-500' : 'bg-gray-400'} flex items-center justify-center`}>{isOnline && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>}</div>
+                </div>
+                <div>
+                  <p className={`text-sm font-bold ${theme.textMain}`}>{driver.name}</p>
+                  <p className={`text-[10px] uppercase font-bold tracking-wider mt-0.5 ${isOnline ? 'text-blue-500' : theme.textMuted}`}>{isOnline ? `Em rota` : 'Aguardando'}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-center justify-center opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 relative z-10">
+                <TopDownCar color={driver.carColor} isDarkMode={isDarkMode} />
+                <p className={`text-[9px] font-black mt-1.5 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded ${theme.textMain}`}>{driver.placa}</p>
+              </div>
+            </div>
+          );
+        };
+
+        // ── TopDownCar ─────────────────────────────────────────────────────────
+        const TopDownCar = ({ color, isDarkMode }) => (
+          <svg width="22" height="42" viewBox="0 0 24 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-md">
+            <rect x="2" y="4" width="20" height="40" rx="6" fill={color} opacity={isDarkMode ? "0.8" : "1"} />
+            <rect x="3" y="14" width="18" height="10" rx="2" fill={isDarkMode ? '#000' : '#fff'} opacity="0.6" />
+            <rect x="4" y="28" width="16" height="12" rx="2" fill={isDarkMode ? '#000' : '#fff'} opacity="0.6" />
+            <rect x="0" y="16" width="3" height="5" rx="1.5" fill={color} />
+            <rect x="21" y="16" width="3" height="5" rx="1.5" fill={color} />
+            <rect x="4" y="3" width="5" height="3" rx="1.5" fill="#fef08a" />
+            <rect x="15" y="3" width="5" height="3" rx="1.5" fill="#fef08a" />
+            <rect x="4" y="42" width="6" height="3" rx="1.5" fill="#ef4444" />
+            <rect x="14" y="42" width="6" height="3" rx="1.5" fill="#ef4444" />
+          </svg>
+        );
+
+        // ── VehicleBlueprint ───────────────────────────────────────────────────
+        const VehicleBlueprint = ({ status, isDarkMode, isScanning }) => {
+          const color = status === 'critical' ? '#ef4444' : status === 'warning' ? '#f59e0b' : '#3b82f6';
+          const rimColor = '#facc15';
+          const tireColor = isDarkMode ? '#020617' : '#111827';
+          const hubColor = isDarkMode ? '#1e293b' : '#334155';
+          const bodyTop = isDarkMode ? '#64748b' : '#ffffff';
+          const bodyBottom = isDarkMode ? '#334155' : '#e2e8f0';
+          const bodyStroke = isDarkMode ? '#475569' : '#cbd5e1';
+
+          const scanEffect = isScanning && (
+            <g>
+              <line x1="0" y1="0" x2="0" y2="170" stroke="#3b82f6" strokeWidth="3" opacity="0.8">
+                <animate attributeName="x1" values="-20;420;-20" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="x2" values="-20;420;-20" dur="2.5s" repeatCount="indefinite" />
+              </line>
+              <rect x="0" y="0" width="60" height="170" fill="url(#scan-grad)" opacity="0.3">
+                <animate attributeName="x" values="-80;380;-80" dur="2.5s" repeatCount="indefinite" />
+              </rect>
+            </g>
+          );
+
+          return (
+            <svg viewBox="0 0 400 170" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full drop-shadow-xl" style={{ filter: `drop-shadow(0px 10px 20px ${color}30)` }}>
+              <defs>
+                <linearGradient id="scan-grad" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="transparent" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient>
+                <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor={bodyTop} /><stop offset="100%" stopColor={bodyBottom} /></linearGradient>
+                <linearGradient id="glassGrad" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#1e293b" /><stop offset="30%" stopColor="#020617" /><stop offset="100%" stopColor="#000000" /></linearGradient>
+              </defs>
+              <ellipse cx="200" cy="155" rx="160" ry="8" fill="#000000" opacity={isDarkMode ? "0.6" : "0.15"} filter="blur(6px)" />
+              <path d="M 25 130 L 76 130 A 28 28 0 0 1 132 130 L 260 130 A 28 28 0 0 1 316 130 L 360 130 C 370 130, 375 120, 375 110 L 365 92 C 340 88, 300 85, 280 86 L 215 52 C 180 48, 140 50, 90 70 C 55 82, 30 95, 15 105 C 10 110, 15 130, 25 130 Z" fill="url(#bodyGrad)" stroke={bodyStroke} strokeWidth="1.5" />
+              <path d="M 275 87 L 212 55 C 175 50, 135 52, 85 72 C 55 83, 35 92, 22 101 L 90 94 L 275 87 Z" fill="url(#glassGrad)" />
+              <path d="M 20 105 Q 180 90 365 95" stroke={isDarkMode ? '#94a3b8' : '#64748b'} strokeWidth="1.5" opacity="0.4" />
+              <path d="M 132 120 L 260 115" stroke={bodyStroke} strokeWidth="2" opacity="0.8" />
+              <path d="M 68 130 A 34 34 0 0 1 140 130" stroke={bodyStroke} strokeWidth="1.5" fill="none" opacity="0.6"/>
+              <path d="M 252 130 A 34 34 0 0 1 324 130" stroke={bodyStroke} strokeWidth="1.5" fill="none" opacity="0.6"/>
+              <path d="M 132 130 L 132 93" stroke={bodyStroke} strokeWidth="1.5" opacity="0.5" />
+              <path d="M 220 130 L 220 89" stroke={bodyStroke} strokeWidth="1.5" opacity="0.5" />
+              <rect x="140" y="93" width="14" height="3" rx="1.5" fill="#94a3b8" />
+              <rect x="230" y="90" width="14" height="3" rx="1.5" fill="#94a3b8" />
+              <path d="M 265 85 L 285 83 L 280 90 L 265 90 Z" fill={bodyTop} stroke={bodyStroke} strokeWidth="1" />
+              <g transform="translate(104, 130)"><circle cx="0" cy="0" r="24" fill={tireColor} /><circle cx="0" cy="0" r="16" fill="none" stroke={rimColor} strokeWidth="3" filter="drop-shadow(0 0 3px #facc15)" /><circle cx="0" cy="0" r="6" fill={hubColor} /></g>
+              <g transform="translate(288, 130)"><circle cx="0" cy="0" r="24" fill={tireColor} /><circle cx="0" cy="0" r="16" fill="none" stroke={rimColor} strokeWidth="3" filter="drop-shadow(0 0 3px #facc15)" /><circle cx="0" cy="0" r="6" fill={hubColor} /></g>
+              <path d="M 372 105 L 340 96 L 345 92 L 368 98 Z" fill="#ffffff" filter="drop-shadow(0 0 4px #ffffff)" />
+              <path d="M 15 105 L 35 98 L 30 108 L 20 110 Z" fill="#ef4444" filter="drop-shadow(0 0 4px #ef4444)" />
+              <polygon points="375,110 355,112 350,125 365,128" fill="#020617" />
+              {scanEffect}
+              {status === 'critical' && (
+                <g>
+                  <circle cx="104" cy="130" r="32" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="6 6" className="animate-spin-slow" style={{ transformOrigin: '104px 130px' }} />
+                  <line x1="104" y1="130" x2="64" y2="50" stroke="#ef4444" strokeWidth="1.5" opacity="0.8"/>
+                  <circle cx="64" cy="50" r="5" fill="#ef4444" className="animate-pulse" />
+                </g>
+              )}
+              {status === 'warning' && (
+                <g><circle cx="288" cy="130" r="32" fill="none" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 6" className="animate-spin-slow" style={{ transformOrigin: '288px 130px' }} /></g>
+              )}
+            </svg>
+          );
+        };
+
+        // ── VehicleModal ───────────────────────────────────────────────────────
+        const VehicleModal = ({ vehicle, onClose, theme, isDarkMode }) => {
+          const [diagState, setDiagState] = useState('idle');
+          const [progress, setProgress] = useState(0);
+          const [diagStep, setDiagStep] = useState(0);
+
+          const isOk = vehicle.status === 'ok' || vehicle.status === 'active';
+          const statusText = isOk ? 'OPERAÇÃO NORMAL' : (vehicle.status === 'warning' ? 'VERIFICAR SISTEMA' : 'AÇÃO NECESSÁRIA');
+
+          const diagSteps = [
+            "Iniciando handshake OBD-II...",
+            "Analisando telemetria de sensores...",
+            "Buscando anomalias no padrão do motor...",
+            "Cruzando dados com IA na nuvem...",
+            "Consolidando relatório de diagnóstico..."
+          ];
+
+          React.useEffect(() => {
+            let interval;
+            if (diagState === 'running') {
+              interval = setInterval(() => {
+                setProgress((old) => {
+                  if (old >= 100) { clearInterval(interval); setDiagState('completed'); return 100; }
+                  if (old === 20) setDiagStep(1);
+                  if (old === 40) setDiagStep(2);
+                  if (old === 60) setDiagStep(3);
+                  if (old === 80) setDiagStep(4);
+                  return old + 2;
+                });
+              }, 60);
+            }
+            return () => clearInterval(interval);
+          }, [diagState]);
+
+          const startDiagnosis = (e) => { e.stopPropagation(); setDiagState('running'); setProgress(0); setDiagStep(0); };
+
+          return (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={onClose}>
+              <div className={`${theme.card} w-full max-w-[420px] h-[700px] rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col animate-in zoom-in-95 duration-300`} onClick={e => e.stopPropagation()}>
+                <div className={`absolute top-0 left-0 w-full h-[55%] bg-gradient-to-b ${theme.studioBg} flex flex-col items-center justify-center`}>
+                  <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 ${isDarkMode ? 'bg-blue-500/5' : 'bg-white/60'} rounded-full blur-[50px] opacity-70`}></div>
+                  <div className="w-[90%] max-w-[320px] max-h-[240px] relative z-10 flex items-center justify-center">
+                    <VehicleBlueprint status={vehicle.status} isDarkMode={isDarkMode} isScanning={diagState === 'running'} />
+                  </div>
+                </div>
+                <div className="px-6 py-6 flex justify-between items-start z-20 relative">
+                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest flex items-center gap-2 shadow-sm ${isOk ? 'bg-green-500/10 text-green-500 border border-green-500/20' : (vehicle.status === 'warning' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20')}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${isOk ? 'bg-green-500' : (vehicle.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500 animate-ping')}`}></div>
+                    {statusText}
+                  </div>
+                  <button onClick={onClose} className={`p-2 rounded-full ${isDarkMode ? 'bg-gray-800/50 hover:bg-gray-700' : 'bg-black/5 hover:bg-black/10'} transition-colors`}><Icon name="x" size={18} className={theme.textMain} /></button>
+                </div>
+                <div className="flex-1"></div>
+                <div className={`relative z-20 ${theme.card} rounded-t-[2.5rem] pt-8 px-8 pb-8 flex flex-col h-[50%] border-t ${theme.border} shadow-[0_-15px_40px_rgba(0,0,0,0.05)]`}>
+                  <div className={`w-12 h-1 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-full absolute top-4 left-1/2 -translate-x-1/2`}></div>
+                  <div className="mt-0 mb-5">
+                    <h2 className={`text-3xl font-light ${theme.textMain} tracking-tight`}>{vehicle.id}</h2>
+                    <p className={`text-xs ${theme.textMuted} font-medium mt-1`}>Placa: {vehicle.placa || 'N/A'} · {vehicle.driver || 'Sem motorista'}</p>
+                  </div>
+
+                  {diagState === 'idle' && (
+                    <div className={`rounded-2xl p-4 text-left flex gap-4 items-center mb-auto border ${isOk ? (isDarkMode ? 'bg-green-950/20 border-green-900/30' : 'bg-green-50 border-green-100') : (vehicle.status === 'warning' ? (isDarkMode ? 'bg-yellow-950/20 border-yellow-900/30' : 'bg-yellow-50 border-yellow-100') : (isDarkMode ? 'bg-red-950/20 border-red-900/30' : 'bg-red-50 border-red-100'))}`}>
+                      <div className={`p-3 rounded-full ${isOk ? 'bg-green-100/10 text-green-500' : (vehicle.status === 'warning' ? 'bg-yellow-100/10 text-yellow-500' : 'bg-red-100/10 text-red-500')}`}>
+                        {isOk ? <Icon name="check-circle" size={24} /> : (vehicle.status === 'warning' ? <Icon name="pulse" size={24} /> : <Icon name="wrench" size={24} />)}
+                      </div>
+                      <div>
+                        <p className={`font-medium text-sm ${isOk ? 'text-green-500' : (vehicle.status === 'warning' ? 'text-yellow-500' : 'text-red-500')}`}>{isOk ? 'Todos os sistemas normais' : (vehicle.status === 'warning' ? vehicle.title || 'Atenção ao sistema' : vehicle.title || 'Problema Detectado')}</p>
+                        <p className={`text-xs mt-1 ${theme.textMuted}`}>{vehicle.desc || (isOk ? 'Veículo operando na rota com segurança.' : 'Verificação recomendada.')}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagState === 'running' && (
+                    <div className="flex flex-col justify-center mb-auto h-full w-full px-2">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.textMuted}`}>{diagSteps[diagStep]}</span>
+                        <span className={`text-xs font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{progress}%</span>
+                      </div>
+                      <div className={`h-2.5 w-full ${isDarkMode ? 'bg-gray-800' : 'bg-gray-200'} rounded-full overflow-hidden`}>
+                        <div className="h-full bg-blue-500 rounded-full transition-all duration-75" style={{ width: `${progress}%` }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagState === 'completed' && (
+                    <div className="flex flex-col gap-3 mb-auto animate-in fade-in zoom-in-95 duration-300 w-full">
+                      <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-green-900/10 border-green-900/30' : 'bg-green-50 border-green-100'} flex items-start gap-3`}>
+                        <Icon name="check-circle" size={18} className="text-green-500 mt-0.5 shrink-0" />
+                        <div>
+                          <p className={`text-sm font-bold ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>Diagnóstico Preditivo Concluído</p>
+                          <p className={`text-[11px] ${theme.textMuted} mt-1 leading-relaxed`}>
+                            {vehicle.status === 'critical' ? 'Confirmação de anomalia detectada. Probabilidade de falha: 98.4%. O.S. recomendada.' : 'Sistema verificado. Dados enviados para o histórico da frota.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {diagState === 'idle' && (
+                    <button onClick={startDiagnosis} className={`w-full h-12 rounded-full font-medium text-xs tracking-wider transition-all flex items-center justify-center gap-2 group/btn ${isOk ? (isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200') : (isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-500' : 'bg-[#1e2532] text-white hover:bg-black')}`}>
+                      {isOk ? 'VER HISTÓRICO DA ROTA' : <React.Fragment><Icon name="pulse" size={16} />{vehicle.status === 'warning' ? 'AGENDAR REVISÃO' : 'INICIAR DIAGNÓSTICO'}</React.Fragment>}
+                    </button>
+                  )}
+
+                  {diagState === 'running' && (
+                    <button disabled className={`w-full h-12 rounded-full font-medium text-xs tracking-wider flex items-center justify-center gap-2 ${isDarkMode ? 'bg-gray-800 text-gray-500' : 'bg-gray-100 text-gray-400'} cursor-not-allowed`}>
+                      <Icon name="pulse" size={16} className="animate-spin" /> PROCESSANDO...
+                    </button>
+                  )}
+
+                  {diagState === 'completed' && (
+                    <button onClick={onClose} className={`w-full h-12 rounded-full font-bold text-xs tracking-wider transition-all flex items-center justify-center gap-2 ${vehicle.status === 'critical' ? (isDarkMode ? 'bg-red-600/20 text-red-400 border border-red-500/30 hover:bg-red-600/30' : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100') : (isDarkMode ? 'bg-gray-800 text-gray-300 hover:bg-gray-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')}`}>
+                      {vehicle.status === 'critical' ? <React.Fragment><Icon name="calendar" size={16} /> GERAR ORDEM DE SERVIÇO (O.S.)</React.Fragment> : 'FECHAR E RETORNAR'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
 </html>
